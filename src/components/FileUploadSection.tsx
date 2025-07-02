@@ -12,6 +12,7 @@ export function FileUploadSection({ onFilesUploaded }: FileUploadSectionProps) {
   const [planningFile, setPlanningFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [dragOver, setDragOver] = useState<'sales' | 'planning' | null>(null)
+  const [demoMode, setDemoMode] = useState(false)
   
   const salesInputRef = useRef<HTMLInputElement>(null)
   const planningInputRef = useRef<HTMLInputElement>(null)
@@ -62,21 +63,29 @@ export function FileUploadSection({ onFilesUploaded }: FileUploadSectionProps) {
       formData.append('sales_file', salesFile)
       formData.append('planning_file', planningFile)
 
-      const response = await fetch('/api/upload', {
+      const endpoint = demoMode ? '/api/upload-demo' : '/api/upload'
+      const response = await fetch(endpoint, {
         method: 'POST',
         body: formData
       })
 
       if (!response.ok) {
-        throw new Error('Upload failed')
+        const errorData = await response.json().catch(() => ({ error: 'Upload failed' }))
+        throw new Error(errorData.error || 'Upload failed')
       }
 
       const result = await response.json()
       onFilesUploaded(result)
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Upload error:', error)
-      alert('Upload failed. Please try again.')
+      
+      // Show the error message
+      if (error instanceof Error) {
+        alert(`Upload failed: ${error.message}`)
+      } else {
+        alert('Upload failed. Please check your connection and try again.')
+      }
     } finally {
       setIsUploading(false)
     }
@@ -196,6 +205,21 @@ export function FileUploadSection({ onFilesUploaded }: FileUploadSectionProps) {
               )}
             </div>
           </div>
+        </div>
+
+        {/* Demo Mode Toggle */}
+        <div className="flex items-center justify-center mb-4">
+          <label className="flex items-center space-x-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={demoMode}
+              onChange={(e) => setDemoMode(e.target.checked)}
+              className="w-4 h-4 text-orange-600 bg-gray-100 border-gray-300 rounded focus:ring-orange-500"
+            />
+            <span className="text-sm text-gray-700">
+              Use demo mode (no database required)
+            </span>
+          </label>
         </div>
 
         {/* Submit Button */}

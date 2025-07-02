@@ -14,7 +14,9 @@ export function ProcessingStatus({ result, onComplete, onReset }: ProcessingStat
 
   const fetchResults = useCallback(async () => {
     try {
-      const response = await fetch(`/api/results/${result.job_id}`)
+      const isDemoMode = (result as any).demo_mode || (currentStatus as any).demo_mode
+      const endpoint = isDemoMode ? `/api/results-demo/${result.job_id}` : `/api/results/${result.job_id}`
+      const response = await fetch(endpoint)
       if (response.ok) {
         const results = await response.json()
         onComplete(results)
@@ -22,7 +24,7 @@ export function ProcessingStatus({ result, onComplete, onReset }: ProcessingStat
     } catch (error) {
       console.error('Error fetching results:', error)
     }
-  }, [result.job_id, onComplete])
+  }, [result.job_id, currentStatus, onComplete])
 
   useEffect(() => {
     if (result.status === 'completed') {
@@ -38,7 +40,9 @@ export function ProcessingStatus({ result, onComplete, onReset }: ProcessingStat
     // Poll for status updates
     const interval = setInterval(async () => {
       try {
-        const response = await fetch(`/api/status/${result.job_id}`)
+        const isDemoMode = (result as any).demo_mode
+        const endpoint = isDemoMode ? `/api/status-demo/${result.job_id}` : `/api/status/${result.job_id}`
+        const response = await fetch(endpoint)
         if (response.ok) {
           const statusUpdate = await response.json()
           setCurrentStatus(statusUpdate)

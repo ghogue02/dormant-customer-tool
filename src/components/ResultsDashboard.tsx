@@ -16,7 +16,15 @@ export function ResultsDashboard({ results, jobId, onReset }: ResultsDashboardPr
   const handleDownloadExcel = async () => {
     setIsDownloading(true)
     try {
-      const response = await fetch(`/api/download/${jobId}`, {
+      const isDemoMode = (results as any).demo_mode
+      const endpoint = isDemoMode ? '#' : `/api/download/${jobId}`
+      
+      if (isDemoMode) {
+        alert('Excel download is not available in demo mode. Please configure Supabase for full functionality.')
+        return
+      }
+      
+      const response = await fetch(endpoint, {
         method: 'POST'
       })
       

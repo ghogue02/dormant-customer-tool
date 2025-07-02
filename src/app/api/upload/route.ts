@@ -4,10 +4,29 @@ import { v4 as uuidv4 } from 'uuid'
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('Upload endpoint called')
+    
+    // Check if Supabase is configured
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    
+    if (!supabaseUrl || !supabaseKey || supabaseUrl === 'https://placeholder.supabase.co') {
+      console.error('Supabase not configured:', { supabaseUrl: !!supabaseUrl, supabaseKey: !!supabaseKey })
+      return NextResponse.json(
+        { error: 'Database configuration missing. Please contact support.' },
+        { status: 503 }
+      )
+    }
+    
     const supabase = getSupabase()
     const formData = await request.formData()
     const salesFile = formData.get('sales_file') as File
     const planningFile = formData.get('planning_file') as File
+    
+    console.log('Files received:', { 
+      salesFile: salesFile?.name, 
+      planningFile: planningFile?.name 
+    })
     
     if (!salesFile || !planningFile) {
       return NextResponse.json(
@@ -50,7 +69,7 @@ export async function POST(request: NextRequest) {
     if (jobError) {
       console.error('Error creating job:', jobError)
       return NextResponse.json(
-        { error: 'Failed to create analysis job' },
+        { error: `Database error: ${jobError.message || 'Failed to create analysis job'}` },
         { status: 500 }
       )
     }
