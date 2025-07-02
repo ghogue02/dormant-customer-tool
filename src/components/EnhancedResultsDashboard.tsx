@@ -239,6 +239,20 @@ export function EnhancedResultsDashboard({ results, onReset }: EnhancedResultsDa
           >
             Analyze New Files
           </button>
+          
+          <button
+            onClick={() => {
+              import('../lib/data-validation').then(({ generateValidationReport }) => {
+                const report = generateValidationReport(results)
+                console.log(report)
+                alert('Validation report generated! Check browser console for details.')
+              })
+            }}
+            className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            title="Run data validation checks to audit calculation accuracy"
+          >
+            🔍 Audit Data
+          </button>
         </div>
       </div>
 
