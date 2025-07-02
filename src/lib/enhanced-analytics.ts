@@ -34,7 +34,7 @@ export interface CustomerSegment {
   actionPlan: string
 }
 
-export interface EnhancedCustomerData extends DormantCustomer {
+export interface EnhancedCustomerData extends Omit<DormantCustomer, 'seasonalPattern'> {
   seasonalPattern: SeasonalPattern
   productPreferences: ProductPreference[]
   winBackProbability: WinBackProbability

@@ -261,6 +261,7 @@ export async function processFilesEnhanced(
         orderCount6Months: customer.orderCount6Months,
         averageOrderValue: customer.averageOrderValue,
         items: customer.items,
+        allOrders: allCustomerOrders,
         churnRiskScore,
         preferredProducts: customer.items.slice(0, 5),
         seasonalPattern: seasonalPattern,
@@ -349,7 +350,8 @@ export async function processFilesEnhanced(
     summary.averageWinBackProbability = summary.customers.length > 0 ? totalWinBack / summary.customers.length : 0
     
     // Convert product map to sorted array
-    summary.topProducts = Array.from(summary.topProducts.entries())
+    const productEntries: [string, number][] = Array.from(summary.topProducts.entries())
+    summary.topProducts = productEntries
       .map(([product, value]) => ({ product, value }))
       .sort((a, b) => b.value - a.value)
       .slice(0, 5)

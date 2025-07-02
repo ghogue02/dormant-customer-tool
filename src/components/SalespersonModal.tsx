@@ -16,7 +16,7 @@ export function SalespersonModal({ salesperson, customers, onClose, onSelectCust
   
   // Segment data for pie chart
   const segmentData = Object.entries(salesperson.segments || {})
-    .filter(([_, count]) => count > 0)
+    .filter(([_, count]) => (count as number) > 0)
     .map(([segment, count]) => ({
       name: segment,
       value: count as number

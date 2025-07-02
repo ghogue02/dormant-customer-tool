@@ -6,6 +6,9 @@ import { EnhancedCustomerData } from '@/lib/enhanced-analytics'
 import { SalespersonModal } from './SalespersonModal'
 import { CustomerModal } from './CustomerModal'
 import { AtRiskModal } from './AtRiskModal'
+import { ProjectedRecoveryModal } from './ProjectedRecoveryModal'
+import { VIPModal } from './VIPModal'
+import { QuickWinsModal } from './QuickWinsModal'
 import { 
   BarChart, Bar, PieChart, Pie, Cell, 
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
@@ -21,6 +24,9 @@ export function EnhancedResultsDashboard({ results, onReset }: EnhancedResultsDa
   const [selectedSalesperson, setSelectedSalesperson] = useState<any>(null)
   const [selectedCustomer, setSelectedCustomer] = useState<EnhancedCustomerData | null>(null)
   const [showAtRiskModal, setShowAtRiskModal] = useState(false)
+  const [showProjectedRecoveryModal, setShowProjectedRecoveryModal] = useState(false)
+  const [showVIPModal, setShowVIPModal] = useState(false)
+  const [showQuickWinsModal, setShowQuickWinsModal] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterSegment, setFilterSegment] = useState<string>('all')
   const [sortBy, setSortBy] = useState<'value' | 'risk' | 'winback'>('value')
@@ -288,22 +294,52 @@ export function EnhancedResultsDashboard({ results, onReset }: EnhancedResultsDa
                   <p className="text-xs text-blue-700 mt-1">{results.summary.totalDormantCustomers} customers</p>
                   <p className="text-xs text-blue-600 mt-2 font-medium">Click for detailed analysis →</p>
                 </div>
-                <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-lg">
-                  <p className="text-sm text-green-600 font-medium">Projected Recovery</p>
+                <div 
+                  className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-lg cursor-pointer hover:shadow-lg transition-all border-2 border-transparent hover:border-green-300"
+                  onClick={() => setShowProjectedRecoveryModal(true)}
+                  title={`Projected Recovery Calculation:\n\n• Formula: Sum of (Customer's 6-month value × Win-back probability)\n• Based on each customer's historical spending patterns\n• Conservative estimate over next 6 months\n• Accounts for seasonal patterns and customer behavior\n• ${results.dormantCustomers.filter(c => c.winBackProbability.score > 0.5).length} customers with >50% probability\n\nClick to see detailed breakdown and timeline`}
+                >
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-green-600 font-medium">Projected Recovery</p>
+                    <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                  </div>
                   <p className="text-3xl font-bold text-green-900">{formatCurrency(results.revenueForecasts.realistic)}</p>
                   <p className="text-xs text-green-700 mt-1">Next 6 months</p>
+                  <p className="text-xs text-green-600 mt-2 font-medium">Click for detailed forecast →</p>
                 </div>
-                <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-lg">
-                  <p className="text-sm text-purple-600 font-medium">VIP Customers</p>
+                <div 
+                  className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-lg cursor-pointer hover:shadow-lg transition-all border-2 border-transparent hover:border-purple-300"
+                  onClick={() => setShowVIPModal(true)}
+                  title={`VIP Customer Criteria:\n\n• High value ($5k+ in 6 months) OR very frequent orders (8+)\n• Most valuable dormant customers requiring immediate attention\n• Need personal outreach within 24 hours\n• Average value: ${results.customerSegments['VIP'] > 0 ? formatCurrency(results.dormantCustomers.filter(c => c.segment.segment === 'VIP').reduce((sum, c) => sum + c.total6MonthValue, 0) / results.customerSegments['VIP']) : '$0'}\n• Risk of losing highest-value relationships\n\nClick to see VIP customer profiles and action plans`}
+                >
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-purple-600 font-medium">VIP Customers</p>
+                    <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                    </svg>
+                  </div>
                   <p className="text-3xl font-bold text-purple-900">{results.customerSegments['VIP'] || 0}</p>
                   <p className="text-xs text-purple-700 mt-1">Require immediate attention</p>
+                  <p className="text-xs text-purple-600 mt-2 font-medium">Click for VIP profiles →</p>
                 </div>
-                <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-6 rounded-lg">
-                  <p className="text-sm text-orange-600 font-medium">Quick Wins</p>
+                <div 
+                  className="bg-gradient-to-br from-orange-50 to-orange-100 p-6 rounded-lg cursor-pointer hover:shadow-lg transition-all border-2 border-transparent hover:border-orange-300"
+                  onClick={() => setShowQuickWinsModal(true)}
+                  title={`Quick Wins Criteria:\n\n• Customers with >70% win-back probability\n• High likelihood of returning with minimal effort\n• Expected success rate: 70-85% with proper outreach\n• Total value potential: ${formatCurrency(results.dormantCustomers.filter(c => c.winBackProbability.score > 0.7).reduce((sum, c) => sum + c.winBackProbability.estimatedRevenue, 0))}\n• Average days dormant: ${Math.round(results.dormantCustomers.filter(c => c.winBackProbability.score > 0.7).reduce((sum, c) => sum + c.daysSinceOrder, 0) / Math.max(results.dormantCustomers.filter(c => c.winBackProbability.score > 0.7).length, 1))}\n\nClick to see quick win customers and action timeline`}
+                >
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-orange-600 font-medium">Quick Wins</p>
+                    <svg className="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  </div>
                   <p className="text-3xl font-bold text-orange-900">
                     {results.dormantCustomers.filter(c => c.winBackProbability.score > 0.7).length}
                   </p>
                   <p className="text-xs text-orange-700 mt-1">&gt;70% win-back probability</p>
+                  <p className="text-xs text-orange-600 mt-2 font-medium">Click for quick wins →</p>
                 </div>
               </div>
 
@@ -320,7 +356,7 @@ export function EnhancedResultsDashboard({ results, onReset }: EnhancedResultsDa
                         cy="50%"
                         labelLine={false}
                         label={({ name, value, percent }) => 
-                          `${name}: ${value} (${(percent * 100).toFixed(0)}%)`
+                          `${name}: ${value} (${((percent || 0) * 100).toFixed(0)}%)`
                         }
                         outerRadius={100}
                         dataKey="value"
@@ -813,6 +849,87 @@ export function EnhancedResultsDashboard({ results, onReset }: EnhancedResultsDa
           onSelectSalesperson={(salesperson) => {
             setShowAtRiskModal(false)
             setSelectedSalesperson(salesperson)
+          }}
+        />
+      )}
+
+      {showProjectedRecoveryModal && (
+        <ProjectedRecoveryModal
+          results={results}
+          onClose={() => setShowProjectedRecoveryModal(false)}
+          onSelectCustomer={(customer) => {
+            setShowProjectedRecoveryModal(false)
+            setSelectedCustomer(customer)
+          }}
+          onSelectSalesperson={(salesperson) => {
+            setShowProjectedRecoveryModal(false)
+            setSelectedSalesperson(salesperson)
+          }}
+          onNavigateToVIP={() => {
+            setShowProjectedRecoveryModal(false)
+            setShowVIPModal(true)
+          }}
+          onNavigateToQuickWins={() => {
+            setShowProjectedRecoveryModal(false)
+            setShowQuickWinsModal(true)
+          }}
+          onNavigateToAtRisk={() => {
+            setShowProjectedRecoveryModal(false)
+            setShowAtRiskModal(true)
+          }}
+        />
+      )}
+
+      {showVIPModal && (
+        <VIPModal
+          results={results}
+          onClose={() => setShowVIPModal(false)}
+          onSelectCustomer={(customer) => {
+            setShowVIPModal(false)
+            setSelectedCustomer(customer)
+          }}
+          onSelectSalesperson={(salesperson) => {
+            setShowVIPModal(false)
+            setSelectedSalesperson(salesperson)
+          }}
+          onNavigateToProjectedRecovery={() => {
+            setShowVIPModal(false)
+            setShowProjectedRecoveryModal(true)
+          }}
+          onNavigateToQuickWins={() => {
+            setShowVIPModal(false)
+            setShowQuickWinsModal(true)
+          }}
+          onNavigateToAtRisk={() => {
+            setShowVIPModal(false)
+            setShowAtRiskModal(true)
+          }}
+        />
+      )}
+
+      {showQuickWinsModal && (
+        <QuickWinsModal
+          results={results}
+          onClose={() => setShowQuickWinsModal(false)}
+          onSelectCustomer={(customer) => {
+            setShowQuickWinsModal(false)
+            setSelectedCustomer(customer)
+          }}
+          onSelectSalesperson={(salesperson) => {
+            setShowQuickWinsModal(false)
+            setSelectedSalesperson(salesperson)
+          }}
+          onNavigateToProjectedRecovery={() => {
+            setShowQuickWinsModal(false)
+            setShowProjectedRecoveryModal(true)
+          }}
+          onNavigateToVIP={() => {
+            setShowQuickWinsModal(false)
+            setShowVIPModal(true)
+          }}
+          onNavigateToAtRisk={() => {
+            setShowQuickWinsModal(false)
+            setShowAtRiskModal(true)
           }}
         />
       )}
