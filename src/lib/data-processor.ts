@@ -65,10 +65,28 @@ export async function processFiles(
 
   // Process sales data
   const customerMap = new Map<string, CustomerData>()
-  const sixMonthsAgo = new Date()
+  
+  // Find the most recent date in the data to use as "today"
+  let maxDate = new Date(0)
+  salesData.forEach((row: any) => {
+    const postedDate = new Date(row['Posted date'])
+    if (!isNaN(postedDate.getTime()) && postedDate > maxDate) {
+      maxDate = postedDate
+    }
+  })
+  
+  console.log('Latest date in data:', maxDate.toDateString())
+  
+  // Calculate date ranges based on the latest date in the data
+  const analysisDate = new Date(maxDate)
+  const sixMonthsAgo = new Date(analysisDate)
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6)
-  const fortyFiveDaysAgo = new Date()
+  const fortyFiveDaysAgo = new Date(analysisDate)
   fortyFiveDaysAgo.setDate(fortyFiveDaysAgo.getDate() - 45)
+  
+  console.log('Analysis date:', analysisDate.toDateString())
+  console.log('Six months ago:', sixMonthsAgo.toDateString())
+  console.log('45 days ago:', fortyFiveDaysAgo.toDateString())
 
   let validRecords = 0
   const issues: string[] = []
@@ -85,7 +103,8 @@ export async function processFiles(
       if (!customer) return
 
       const netPrice = parseFloat(row['Net price']) || 0
-      // const quantity = parseInt(row.Qty) || 0
+      // Handle 'Qty.' or 'Qty' column
+      // const quantity = parseInt(row['Qty.'] || row.Qty) || 0
       const item = row.Item || 'Unknown'
 
       // Only process orders from last 6 months
@@ -128,7 +147,8 @@ export async function processFiles(
   })
 
   // Calculate days since last order and identify dormant customers
-  const today = new Date()
+  // Use the analysis date (latest date in data) as reference
+  const today = analysisDate
   const dormantCustomers: DormantCustomer[] = []
 
   customerMap.forEach((customer) => {

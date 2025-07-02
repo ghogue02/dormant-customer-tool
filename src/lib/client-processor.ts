@@ -1,91 +1,163 @@
 import Papa from 'papaparse'
 
-export interface ProcessedData {
-  customerOrders: Map<string, any[]>
-  totalRows: number
-  validRows: number
-  dateRange: { start: Date; end: Date }
-}
-
 export async function preprocessSalesData(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
-    const customerMap = new Map<string, any[]>()
-    const sixMonthsAgo = new Date()
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6)
+    const fileContent = file.text()
     
-    let totalRows = 0
-    let validRows = 0
-    let minDate = new Date()
-    let maxDate = new Date(0)
-
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      transformHeader: (header) => header.trim(),
-      step: (row: any) => {
-        totalRows++
-        const data = row.data
-        
-        // Parse date
-        const postedDate = new Date(data['Posted date'])
-        if (isNaN(postedDate.getTime())) return
-        
-        // Only keep recent orders (last 6 months)
-        if (postedDate < sixMonthsAgo) return
-        
-        const customer = data.Customer?.trim()
-        if (!customer) return
-        
-        validRows++
-        
-        // Update date range
-        if (postedDate < minDate) minDate = postedDate
-        if (postedDate > maxDate) maxDate = postedDate
-        
-        // Group by customer to reduce data size
-        if (!customerMap.has(customer)) {
-          customerMap.set(customer, [])
-        }
-        
-        // Store only essential fields
-        customerMap.get(customer)!.push({
-          'Posted date': data['Posted date'],
-          'Customer': customer,
-          'Salesperson': data.Salesperson,
-          'Item': data.Item,
-          'Qty': data.Qty,
-          'Net price': data['Net price']
-        })
-      },
-      complete: () => {
-        // Convert map to array format
-        const consolidatedData: any[] = []
-        
-        customerMap.forEach((orders, customer) => {
-          // For customers with many orders, keep only recent ones
-          const sortedOrders = orders.sort((a, b) => 
-            new Date(b['Posted date']).getTime() - new Date(a['Posted date']).getTime()
-          )
-          
-          // Keep up to 50 most recent orders per customer
-          const recentOrders = sortedOrders.slice(0, 50)
-          consolidatedData.push(...recentOrders)
-        })
-        
-        // Convert back to CSV
-        const csv = Papa.unparse(consolidatedData, {
-          header: true
-        })
-        
-        console.log(`Preprocessed data: ${totalRows} rows → ${consolidatedData.length} rows`)
-        console.log(`Original size: ${(file.size / 1024 / 1024).toFixed(2)}MB`)
-        console.log(`Processed size: ${(csv.length / 1024 / 1024).toFixed(2)}MB`)
-        
-        resolve(csv)
-      },
-      error: (error: any) => {
-        reject(error)
+    fileContent.then(content => {
+      // Remove title rows if present (first two lines if they don't contain proper headers)
+      const lines = content.split('\n')
+      let startIndex = 0
+      
+      // Check if first line is a title (contains "Sales report")
+      if (lines[0] && lines[0].includes('Sales report')) {
+        startIndex = 2 // Skip title and empty line
       }
+      
+      const cleanedContent = lines.slice(startIndex).join('\n')
+      
+      const allRows: any[] = []
+      let totalRows = 0
+      let skippedRows = 0
+      
+      Papa.parse(cleanedContent, {
+        header: true,
+        skipEmptyLines: true,
+        transformHeader: (header) => header.trim(),
+        step: (row: any) => {
+          totalRows++
+          const data = row.data
+          
+          // Skip empty rows
+          const customer = data.Customer?.trim()
+          if (!customer || customer === '') {
+            skippedRows++
+            return
+          }
+          
+          // Parse and validate date
+          const postedDate = data['Posted date']
+          if (!postedDate || postedDate === '') {
+            skippedRows++
+            return
+          }
+          
+          // Validate it's a proper date format
+          const dateTest = new Date(postedDate)
+          if (isNaN(dateTest.getTime())) {
+            skippedRows++
+            return
+          }
+          
+          // Store only essential fields to reduce size
+          allRows.push({
+            'Posted date': postedDate,
+            'Customer': customer,
+            'Salesperson': data.Salesperson || '',
+            'Item': data.Item || '',
+            'Qty': data['Qty.'] || data.Qty || '0', // Note: might be 'Qty.' with period
+            'Net price': data['Net price'] || '0'
+          })
+        },
+        complete: () => {
+          console.log(`Total rows processed: ${totalRows}`)
+          console.log(`Skipped rows (empty/invalid): ${skippedRows}`)
+          console.log(`Valid rows to send: ${allRows.length}`)
+          
+          if (allRows.length === 0) {
+            reject(new Error('No valid data found in file. Please check the file format.'))
+            return
+          }
+          
+          // If file is still too large, we need to aggregate
+          const csv = Papa.unparse(allRows, {
+            header: true
+          })
+          
+          const csvSize = csv.length / 1024 / 1024 // Size in MB
+          console.log(`CSV size after processing: ${csvSize.toFixed(2)}MB`)
+          
+          if (csvSize > 4) {
+            // If still too large, aggregate by customer
+            console.log('File still too large, aggregating by customer...')
+            const aggregated = aggregateByCustomer(allRows)
+            const aggregatedCsv = Papa.unparse(aggregated, {
+              header: true
+            })
+            console.log(`Aggregated size: ${(aggregatedCsv.length / 1024 / 1024).toFixed(2)}MB`)
+            console.log(`Customers after aggregation: ${aggregated.length}`)
+            resolve(aggregatedCsv)
+          } else {
+            resolve(csv)
+          }
+        },
+        error: (error: any) => {
+          console.error('Parse error:', error)
+          reject(error)
+        }
+      })
+    }).catch(error => {
+      reject(error)
     })
   })
+}
+
+function aggregateByCustomer(rows: any[]): any[] {
+  const customerMap = new Map<string, any>()
+  
+  rows.forEach(row => {
+    const key = row.Customer // Group by customer only for better aggregation
+    
+    if (!customerMap.has(key)) {
+      customerMap.set(key, {
+        'Posted date': row['Posted date'], // Will be updated to latest
+        'Customer': row.Customer,
+        'Salesperson': row.Salesperson,
+        'Item': row.Item,
+        'Qty': 0,
+        'Net price': 0,
+        'Order count': 0,
+        'First order': row['Posted date'],
+        'Last order': row['Posted date'],
+        'Items': new Set()
+      })
+    }
+    
+    const agg = customerMap.get(key)!
+    const currentDate = new Date(row['Posted date'])
+    const aggDate = new Date(agg['Last order'])
+    
+    // Update to latest order date
+    if (currentDate > aggDate) {
+      agg['Posted date'] = row['Posted date']
+      agg['Last order'] = row['Posted date']
+      agg['Salesperson'] = row.Salesperson // Use most recent salesperson
+    }
+    
+    // Update earliest order date
+    const firstDate = new Date(agg['First order'])
+    if (currentDate < firstDate) {
+      agg['First order'] = row['Posted date']
+    }
+    
+    // Track unique items
+    if (row.Item) {
+      agg.Items.add(row.Item)
+    }
+    
+    // Sum quantities and prices
+    agg['Qty'] += parseFloat(row.Qty) || 0
+    agg['Net price'] += parseFloat(row['Net price']) || 0
+    agg['Order count'] += 1
+  })
+  
+  // Convert aggregated data back to array format
+  return Array.from(customerMap.values()).map(agg => ({
+    'Posted date': agg['Posted date'],
+    'Customer': agg.Customer,
+    'Salesperson': agg.Salesperson,
+    'Item': Array.from(agg.Items).slice(0, 3).join('; ') || 'Various',
+    'Qty': agg['Qty'].toString(),
+    'Net price': agg['Net price'].toFixed(2)
+  }))
 }

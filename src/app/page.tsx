@@ -17,6 +17,7 @@ export default function Home() {
   const [salesFile, setSalesFile] = useState<File | null>(null)
   const [planningFile, setPlanningFile] = useState<File | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
+  const [processingMessage, setProcessingMessage] = useState<string>('')
   const [results, setResults] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -84,6 +85,13 @@ export default function Home() {
           
           console.log(`Reduced file size from ${(salesFile.size / 1024 / 1024).toFixed(2)}MB to ${(processedFile.size / 1024 / 1024).toFixed(2)}MB`)
           
+          if (processedFile.size === 0) {
+            setError('No valid data found after processing. Please check your file format.')
+            setIsProcessing(false)
+            setProcessingMessage('')
+            return
+          }
+          
           const formData = new FormData()
           formData.append('salesFile', processedFile)
           formData.append('planningFile', planningFile)
@@ -96,7 +104,10 @@ export default function Home() {
           await handleResponse(response)
         } catch (preprocessError) {
           console.error('Preprocessing error:', preprocessError)
-          setError('Failed to process large file. Please try a smaller file or contact support.')
+          const errorMessage = preprocessError instanceof Error ? preprocessError.message : 'Unknown error'
+          setError(`Failed to process file: ${errorMessage}`)
+          setIsProcessing(false)
+          setProcessingMessage('')
           return
         }
       } else {
