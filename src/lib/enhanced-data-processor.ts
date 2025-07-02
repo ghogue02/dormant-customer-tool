@@ -6,7 +6,8 @@ import {
   segmentCustomer,
   analyzeProductPreferences,
   forecastRevenueRecovery,
-  EnhancedCustomerData
+  EnhancedCustomerData,
+  isWineProduct
 } from './enhanced-analytics'
 import { DormantCustomer } from './data-processor'
 
@@ -130,7 +131,8 @@ export async function processFilesEnhanced(
         recordsInWindow++
         
         if (!customerMap.has(customer)) {
-          const correctRep = customerToRep.get(customer.toLowerCase()) || row.Salesperson || 'Unassigned'
+          const correctRep = customerToRep.get(customer.toLowerCase()) || 
+                            (row.Salesperson && row.Salesperson.trim() !== '' ? row.Salesperson.trim() : 'Unassigned')
           
           const locationData = {
             city: row['Shipping address city'] || '',
@@ -164,7 +166,8 @@ export async function processFilesEnhanced(
         customerData.total6MonthValue += netPrice
         customerData.orderCount6Months += 1
         
-        if (!customerData.items.includes(item)) {
+        // Only track wine products in customer items
+        if (isWineProduct(item) && !customerData.items.includes(item)) {
           customerData.items.push(item)
         }
         
@@ -308,7 +311,14 @@ export async function processFilesEnhanced(
     summary.dormantCustomerCount++
     summary.totalValueAtRisk += customer.total6MonthValue
     summary.customers.push(customer)
-    summary.potentialRecovery += customer.winBackProbability.estimatedRevenue * customer.winBackProbability.score
+    // Calculate potential recovery with error handling
+    const estimatedRevenue = customer.winBackProbability.estimatedRevenue || 0
+    const winBackScore = customer.winBackProbability.score || 0
+    const potentialRevenue = estimatedRevenue * winBackScore
+    
+    if (!isNaN(potentialRevenue) && isFinite(potentialRevenue)) {
+      summary.potentialRecovery += potentialRevenue
+    }
     summary.segments[customer.segment.segment]++
     
     if (customer.total6MonthValue > 2000) {
@@ -319,8 +329,10 @@ export async function processFilesEnhanced(
       summary.quickWinCount++
     }
     
-    // Track products
+    // Track products (only wine products)
     customer.productPreferences.forEach(pref => {
+      if (!isWineProduct(pref.product)) return
+      
       if (!summary.topProducts.has(pref.product)) {
         summary.topProducts.set(pref.product, 0)
       }
@@ -374,6 +386,9 @@ export async function processFilesEnhanced(
   
   enhancedDormantCustomers.forEach(customer => {
     customer.productPreferences.forEach(pref => {
+      // Only include wine products in insights
+      if (!isWineProduct(pref.product)) return
+      
       if (!productMap.has(pref.product)) {
         productMap.set(pref.product, { customers: new Set(), revenue: 0 })
       }
@@ -424,10 +439,11 @@ export async function processFilesEnhanced(
       ? `⚠️ ${vipCount} VIP customers are dormant! These require immediate personal attention.`
       : 'No VIP customers in dormant list.',
     
-    revenueOpportunity: `Potential revenue recovery: $${revenueForecasts.realistic.toFixed(2)} (realistic scenario) over next 6 months.`,
+    revenueOpportunity: `Potential revenue recovery: $${(revenueForecasts.realistic || 0).toFixed(2)} (realistic scenario) over next 6 months.`,
     
     geographicInsight: (() => {
       const topState = Object.entries(geographicDistribution)
+        .filter(([state]) => state !== 'Unknown' && state.trim() !== '')
         .sort((a, b) => b[1].value - a[1].value)[0]
       return topState 
         ? `${topState[0]} has the highest value at risk with ${topState[1].count} dormant customers worth $${topState[1].value.toFixed(2)}.`

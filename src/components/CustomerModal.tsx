@@ -284,7 +284,7 @@ export function CustomerModal({ customer, onClose }: CustomerModalProps) {
           {/* Contact Template */}
           <div className="bg-gray-50 rounded-lg p-4">
             <h3 className="text-lg font-semibold mb-3">Suggested Outreach Template</h3>
-            <div className="bg-white border border-gray-200 rounded p-4 font-mono text-sm">
+            <div className="bg-white border border-gray-200 rounded p-4 font-mono text-sm text-gray-900">
               <p>Hi {customer.customer.split(' ')[0] || 'there'},</p>
               <br />
               <p>I noticed it's been {customer.daysSinceOrder} days since your last order of {customer.productPreferences[0]?.product || 'our wines'}. 

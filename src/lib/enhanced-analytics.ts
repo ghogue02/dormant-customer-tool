@@ -240,6 +240,21 @@ export function segmentCustomer(
   }
 }
 
+// Filter out non-wine products
+export function isWineProduct(productName: string): boolean {
+  if (!productName || productName.toLowerCase() === 'unknown') return false
+  
+  const nonWinePatterns = [
+    'check', 'pick up', 'pickup', 'delivery', 'shipping', 'freight',
+    'fee', 'charge', 'tax', 'discount', 'credit', 'refund',
+    'service', 'labor', 'setup', 'install', 'consultation',
+    'deposit', 'balance', 'payment', 'adjustment', 'misc'
+  ]
+  
+  const lowerProduct = productName.toLowerCase()
+  return !nonWinePatterns.some(pattern => lowerProduct.includes(pattern))
+}
+
 // Analyze product preferences
 export function analyzeProductPreferences(
   customerOrders: any[]
@@ -251,9 +266,13 @@ export function analyzeProductPreferences(
     orderDates: Date[]
   }>()
 
-  // Aggregate by product
+  // Aggregate by product (only wine products)
   customerOrders.forEach(order => {
     const product = order.Item || 'Unknown'
+    
+    // Filter out non-wine products
+    if (!isWineProduct(product)) return
+    
     const value = parseFloat(order['Net price']) || 0
     const date = new Date(order['Posted date'])
 

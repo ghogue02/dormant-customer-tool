@@ -111,6 +111,42 @@ export function EnhancedResultsDashboard({ results, onReset }: EnhancedResultsDa
 
 
   // Export functionality
+  // Handle insight clicks for navigation
+  const handleInsightClick = (key: string, insight: string) => {
+    if (key === 'topPriorityRep') {
+      // Extract salesperson name and show their modal
+      const match = insight.match(/Focus on ([^,]+),/)
+      if (match) {
+        const salesPersonName = match[1]
+        const salesperson = results.salespersonSummaries.find(s => s.salesperson === salesPersonName)
+        if (salesperson) {
+          setSelectedSalesperson(salesperson)
+        }
+      }
+    } else if (key === 'topPriorityCustomer') {
+      // Extract customer name and show their modal
+      const match = insight.match(/^([^\\s]+(?:\\s+[^\\s]+)*?)\\s+is your top priority/)
+      if (match) {
+        const customerName = match[1]
+        const customer = results.dormantCustomers.find(c => c.customer === customerName)
+        if (customer) {
+          setSelectedCustomer(customer)
+        }
+      }
+    } else if (key === 'quickWins') {
+      // Navigate to customers tab and filter for high win-back probability
+      setActiveTab('customers')
+      setSortBy('winback')
+    } else if (key === 'vipAlert') {
+      // Navigate to customers tab and filter for VIP
+      setActiveTab('customers')
+      setFilterSegment('VIP')
+    } else if (key === 'geographicInsight') {
+      // Navigate to salespeople or customers tab
+      setActiveTab('customers')
+    }
+  }
+
   const exportToCSV = () => {
     const headers = [
       'Customer', 'Salesperson', 'Segment', 'Last Order Date', 'Days Since Order',
@@ -263,7 +299,7 @@ export function EnhancedResultsDashboard({ results, onReset }: EnhancedResultsDa
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Customer Segments */}
                 <div className="bg-white border border-gray-200 rounded-lg p-4">
-                  <h3 className="text-lg font-semibold mb-4">Customer Segments</h3>
+                  <h3 className="text-lg font-semibold mb-4 text-gray-900 text-gray-900">Customer Segments</h3>
                   <ResponsiveContainer width="100%" height={300}>
                     <PieChart>
                       <Pie
@@ -288,7 +324,7 @@ export function EnhancedResultsDashboard({ results, onReset }: EnhancedResultsDa
 
                 {/* Risk Distribution */}
                 <div className="bg-white border border-gray-200 rounded-lg p-4">
-                  <h3 className="text-lg font-semibold mb-4">Risk Distribution</h3>
+                  <h3 className="text-lg font-semibold mb-4 text-gray-900">Risk Distribution</h3>
                   <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={riskDistribution}>
                       <CartesianGrid strokeDasharray="3 3" />
@@ -307,7 +343,7 @@ export function EnhancedResultsDashboard({ results, onReset }: EnhancedResultsDa
 
               {/* Top Quick Win Opportunities */}
               <div className="bg-white border border-gray-200 rounded-lg p-4">
-                <h3 className="text-lg font-semibold mb-4">Top 10 Quick Win Opportunities</h3>
+                <h3 className="text-lg font-semibold mb-4 text-gray-900">Top 10 Quick Win Opportunities</h3>
                 <div className="space-y-3">
                   {results.dormantCustomers
                     .filter(c => c.winBackProbability.score > 0.7)
@@ -340,11 +376,15 @@ export function EnhancedResultsDashboard({ results, onReset }: EnhancedResultsDa
               {/* Main Insights */}
               <div className="space-y-4">
                 {Object.entries(results.insights).map(([key, insight]) => (
-                  <div key={key} className={`p-4 rounded-lg border ${
-                    key === 'vipAlert' && results.customerSegments['VIP'] > 0 
-                      ? 'bg-purple-50 border-purple-200' 
-                      : 'bg-blue-50 border-blue-200'
-                  }`}>
+                  <div 
+                    key={key} 
+                    className={`p-4 rounded-lg border cursor-pointer hover:shadow-md transition-all ${
+                      key === 'vipAlert' && results.customerSegments['VIP'] > 0 
+                        ? 'bg-purple-50 border-purple-200 hover:bg-purple-100' 
+                        : 'bg-blue-50 border-blue-200 hover:bg-blue-100'
+                    }`}
+                    onClick={() => handleInsightClick(key, insight as string)}
+                  >
                     <p className={`${
                       key === 'vipAlert' && results.customerSegments['VIP'] > 0 
                         ? 'text-purple-800' 
@@ -352,13 +392,16 @@ export function EnhancedResultsDashboard({ results, onReset }: EnhancedResultsDa
                     }`}>
                       {insight as string}
                     </p>
+                    <p className="text-xs text-gray-500 mt-2">
+                      Click to explore this insight →
+                    </p>
                   </div>
                 ))}
               </div>
 
               {/* Actionable Recommendations */}
               <div className="bg-white border border-gray-200 rounded-lg p-6">
-                <h3 className="text-lg font-semibold mb-4">Actionable Recommendations</h3>
+                <h3 className="text-lg font-semibold mb-4 text-gray-900">Actionable Recommendations</h3>
                 <div className="space-y-4">
                   <div className="flex items-start space-x-3">
                     <span className="text-2xl">🎯</span>
@@ -401,7 +444,7 @@ export function EnhancedResultsDashboard({ results, onReset }: EnhancedResultsDa
 
               {/* Top Products */}
               <div className="bg-white border border-gray-200 rounded-lg p-6">
-                <h3 className="text-lg font-semibold mb-4">Top Products Among Dormant Customers</h3>
+                <h3 className="text-lg font-semibold mb-4 text-gray-900">Top Products Among Dormant Customers</h3>
                 <div className="space-y-3">
                   {results.summary.topProducts.map((product, index) => (
                     <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
@@ -585,7 +628,10 @@ export function EnhancedResultsDashboard({ results, onReset }: EnhancedResultsDa
                           </span>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm">
-                          <div className="flex items-center">
+                          <div 
+                            className="flex items-center cursor-help" 
+                            title={`Win-Back Score Breakdown:\n• Recency: ${(customer.winBackProbability.factors.recencyScore * 100).toFixed(0)}% (30% weight)\n• Frequency: ${(customer.winBackProbability.factors.frequencyScore * 100).toFixed(0)}% (25% weight)\n• Value: ${(customer.winBackProbability.factors.monetaryScore * 100).toFixed(0)}% (25% weight)\n• Seasonal: ${(customer.winBackProbability.factors.seasonalScore * 100).toFixed(0)}% (10% weight)\n• Diversity: ${(customer.winBackProbability.factors.productDiversityScore * 100).toFixed(0)}% (10% weight)\n\nHigher scores = more likely to return when contacted`}
+                          >
                             <div className="w-12 bg-gray-200 rounded-full h-2 mr-2">
                               <div 
                                 className="bg-green-500 h-2 rounded-full"
@@ -595,6 +641,7 @@ export function EnhancedResultsDashboard({ results, onReset }: EnhancedResultsDa
                             <span className="text-xs text-gray-600">
                               {(customer.winBackProbability.score * 100).toFixed(0)}%
                             </span>
+                            <span className="ml-1 text-xs text-gray-400">ⓘ</span>
                           </div>
                         </td>
                         <td className="px-4 py-3 text-sm">
@@ -620,7 +667,7 @@ export function EnhancedResultsDashboard({ results, onReset }: EnhancedResultsDa
             <div className="space-y-6">
               {/* Product Performance Table */}
               <div className="bg-white border border-gray-200 rounded-lg p-6">
-                <h3 className="text-lg font-semibold mb-4">Top Products Among Dormant Customers</h3>
+                <h3 className="text-lg font-semibold mb-4 text-gray-900">Top Products Among Dormant Customers</h3>
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
@@ -660,7 +707,7 @@ export function EnhancedResultsDashboard({ results, onReset }: EnhancedResultsDa
               {/* Product Trends */}
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="bg-white border border-gray-200 rounded-lg p-6">
-                  <h3 className="text-lg font-semibold mb-4 text-green-600">📈 Trending Up</h3>
+                  <h3 className="text-lg font-semibold mb-4 text-gray-900 text-green-600">📈 Trending Up</h3>
                   <div className="space-y-2">
                     {results.productInsights.trendingUp.length > 0 ? (
                       results.productInsights.trendingUp.slice(0, 10).map((product, index) => (
@@ -674,7 +721,7 @@ export function EnhancedResultsDashboard({ results, onReset }: EnhancedResultsDa
                   </div>
                 </div>
                 <div className="bg-white border border-gray-200 rounded-lg p-6">
-                  <h3 className="text-lg font-semibold mb-4 text-red-600">📉 Trending Down</h3>
+                  <h3 className="text-lg font-semibold mb-4 text-gray-900 text-red-600">📉 Trending Down</h3>
                   <div className="space-y-2">
                     {results.productInsights.trendingDown.length > 0 ? (
                       results.productInsights.trendingDown.slice(0, 10).map((product, index) => (
@@ -691,7 +738,7 @@ export function EnhancedResultsDashboard({ results, onReset }: EnhancedResultsDa
 
               {/* Product Customer Matrix */}
               <div className="bg-white border border-gray-200 rounded-lg p-6">
-                <h3 className="text-lg font-semibold mb-4">Product Performance Details</h3>
+                <h3 className="text-lg font-semibold mb-4 text-gray-900">Product Performance Details</h3>
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
@@ -729,6 +776,10 @@ export function EnhancedResultsDashboard({ results, onReset }: EnhancedResultsDa
           salesperson={selectedSalesperson}
           customers={results.dormantCustomers}
           onClose={() => setSelectedSalesperson(null)}
+          onSelectCustomer={(customer) => {
+            setSelectedSalesperson(null)
+            setSelectedCustomer(customer)
+          }}
         />
       )}
 

@@ -7,9 +7,10 @@ interface SalespersonModalProps {
   salesperson: any
   customers: EnhancedCustomerData[]
   onClose: () => void
+  onSelectCustomer?: (customer: EnhancedCustomerData) => void
 }
 
-export function SalespersonModal({ salesperson, customers, onClose }: SalespersonModalProps) {
+export function SalespersonModal({ salesperson, customers, onClose, onSelectCustomer }: SalespersonModalProps) {
   // Filter customers for this salesperson
   const repCustomers = customers.filter(c => c.salesperson === salesperson.salesperson)
   
@@ -82,7 +83,7 @@ export function SalespersonModal({ salesperson, customers, onClose }: Salesperso
           <div className="grid md:grid-cols-2 gap-6">
             {/* Customer Segments */}
             <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <h3 className="text-lg font-semibold mb-4">Customer Segments</h3>
+              <h3 className="text-lg font-semibold mb-4 text-gray-900">Customer Segments</h3>
               <ResponsiveContainer width="100%" height={250}>
                 <PieChart>
                   <Pie
@@ -106,7 +107,7 @@ export function SalespersonModal({ salesperson, customers, onClose }: Salesperso
 
             {/* Risk Distribution */}
             <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <h3 className="text-lg font-semibold mb-4">Risk Distribution</h3>
+              <h3 className="text-lg font-semibold mb-4 text-gray-900">Risk Distribution</h3>
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={riskData}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -124,9 +125,9 @@ export function SalespersonModal({ salesperson, customers, onClose }: Salesperso
           </div>
 
           {/* Top Products */}
-          {productData.length > 0 && (
-            <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <h3 className="text-lg font-semibold mb-4">Top Products by Revenue</h3>
+          <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <h3 className="text-lg font-semibold mb-4 text-gray-900">Top Wine Products by Revenue</h3>
+            {productData.length > 0 ? (
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={productData} layout="horizontal">
                   <CartesianGrid strokeDasharray="3 3" />
@@ -136,12 +137,20 @@ export function SalespersonModal({ salesperson, customers, onClose }: Salesperso
                   <Bar dataKey="value" fill="#3b82f6" />
                 </BarChart>
               </ResponsiveContainer>
-            </div>
-          )}
+            ) : (
+              <div className="flex items-center justify-center h-64 text-gray-500">
+                <div className="text-center">
+                  <p className="text-lg mb-2">📦</p>
+                  <p className="text-sm">No wine product data available</p>
+                  <p className="text-xs text-gray-400 mt-1">This rep's customers may have only purchased non-wine items</p>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Customer List */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">Dormant Customers</h3>
+            <h3 className="text-lg font-semibold mb-4 text-gray-900">Dormant Customers</h3>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -193,7 +202,10 @@ export function SalespersonModal({ salesperson, customers, onClose }: Salesperso
                         </div>
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-500">
-                        <button className="text-blue-600 hover:text-blue-800 text-xs">
+                        <button 
+                          className="text-blue-600 hover:text-blue-800 text-xs"
+                          onClick={() => onSelectCustomer?.(customer)}
+                        >
                           View Details
                         </button>
                       </td>
