@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { getSupabase } from '@/lib/supabase'
 
 export async function POST(
   request: NextRequest,
@@ -7,6 +7,7 @@ export async function POST(
 ) {
   try {
     const { jobId } = await params
+    const supabase = getSupabase()
 
     // Check if job exists and is completed
     const { data: job, error: jobError } = await supabase

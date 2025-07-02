@@ -1,9 +1,38 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+let supabaseInstance: SupabaseClient | null = null
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Get Supabase client - creates it lazily when needed
+export function getSupabase() {
+  if (!supabaseInstance) {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    
+    if (!supabaseUrl || !supabaseAnonKey) {
+      // Return a mock client during build time
+      return {
+        from: () => ({
+          select: () => ({ single: () => ({ data: null, error: new Error('Supabase not configured') }) }),
+          insert: () => ({ select: () => ({ single: () => ({ data: null, error: new Error('Supabase not configured') }) }) }),
+          update: () => ({ eq: () => ({}) }),
+          delete: () => ({ eq: () => ({}) })
+        }),
+        storage: {
+          from: () => ({
+            upload: () => ({ error: new Error('Supabase not configured') })
+          })
+        }
+      } as any
+    }
+    
+    supabaseInstance = createClient(supabaseUrl, supabaseAnonKey)
+  }
+  
+  return supabaseInstance
+}
+
+// Export the function only - do not create instance at module level
+// This prevents build-time errors when env vars are not available
 
 // Types for our database
 export interface AnalysisJob {

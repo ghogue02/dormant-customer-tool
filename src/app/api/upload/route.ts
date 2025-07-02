@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { getSupabase } from '@/lib/supabase'
 import { v4 as uuidv4 } from 'uuid'
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = getSupabase()
     const formData = await request.formData()
     const salesFile = formData.get('sales_file') as File
     const planningFile = formData.get('planning_file') as File
@@ -126,6 +127,7 @@ export async function POST(request: NextRequest) {
 
 async function startProcessing(jobId: string) {
   try {
+    const supabase = getSupabase()
     // Update job status to processing
     await supabase
       .from('analysis_jobs')
@@ -156,6 +158,7 @@ async function startProcessing(jobId: string) {
 
 async function completeProcessing(jobId: string) {
   try {
+    const supabase = getSupabase()
     // This is a simplified simulation of the actual data processing
     // In reality, you'd implement the full data processing logic here
     
