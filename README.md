@@ -6,8 +6,8 @@ A modern web application that automates dormant customer reporting with AI-power
 
 - **Automated Data Processing**: Clean and validate sales data with intelligent error detection
 - **AI-Powered Analytics**: Advanced customer insights with churn risk scoring and lifetime value calculations
-- **Beautiful Dashboard**: Intuitive interface designed for non-technical users
-- **Professional Reports**: Generate Excel reports with detailed analytics and strategic recommendations
+- **Beautiful Dashboard**: Intuitive web-based interface designed for non-technical users
+- **Interactive Results**: Searchable and sortable customer data with visual risk indicators
 - **Real-time Processing**: Live progress tracking with detailed status updates
 - **Data Accuracy Verification**: Comprehensive data quality checks and reporting
 
@@ -16,7 +16,7 @@ A modern web application that automates dormant customer reporting with AI-power
 1. **Identifies Dormant Customers**: Finds customers who ordered in the last 6 months but not in the last 45 days
 2. **Corrects Data Issues**: Automatically fixes salesperson assignments using current planning data
 3. **Generates Insights**: Creates actionable recommendations prioritized by value and risk
-4. **Produces Reports**: Multi-tab Excel files with customer details, analytics, and strategic guidance
+4. **Interactive Dashboard**: Web-based results with search, sort, and filter capabilities
 
 ## 🛠 Technology Stack
 
@@ -29,9 +29,9 @@ A modern web application that automates dormant customer reporting with AI-power
 ### Backend
 - **FastAPI** for high-performance API
 - **Pandas** for data processing
-- **OpenPyXL** for Excel generation
 - **Pydantic** for data validation
 - **Advanced Analytics** with ML-based insights
+- **CSV Export** for data portability
 
 ### Deployment
 - **Vercel** for frontend hosting
@@ -88,12 +88,25 @@ A modern web application that automates dormant customer reporting with AI-power
 2. **Upload and Process**:
    - Visit http://localhost:3000
    - Upload both files using the drag-and-drop interface
+   - **Enable "Demo Mode"** to test without database setup
    - Watch real-time processing progress
 
 3. **Review Results**:
-   - View AI-powered strategic insights
-   - Explore data by salesperson or customer
-   - Download comprehensive Excel report
+   - View AI-powered strategic insights with visual risk distribution
+   - Search and sort customer data interactively
+   - Download CSV for data analysis or print web report
+
+### Troubleshooting
+
+**Upload Failed Error?**
+1. Check demo mode checkbox to test without database
+2. Visit `/api/health` to check configuration status
+3. Ensure environment variables are set in Vercel
+4. Verify Supabase database and storage bucket are created
+
+**Test Files Available:**
+- Sales Report: `reference/Sales report 2024-07-01 to 2025-06-30.csv`
+- Planning Sheet: `reference/Updated_Planning_Q3_2025_with_Realistic_Targets_AF.xlsx`
 
 ## 📊 Data Requirements
 
@@ -110,6 +123,19 @@ Required columns:
 Required columns:
 - `Customer`: Customer name (must match sales data)
 - `Assigned Rep`: Current salesperson
+
+## 🎯 Key Features of Web-Based Dashboard
+
+### Interactive Customer Analysis
+- **Search Functionality**: Find customers by name or salesperson
+- **Dynamic Sorting**: Sort by value, risk score, or last order date
+- **Risk Visualization**: Color-coded risk indicators and distribution charts
+- **Print-Friendly**: Optimized print styles for professional reports
+
+### Data Export Options
+- **CSV Download**: Export all customer data for further analysis
+- **Print Report**: Generate print-friendly version of web dashboard
+- **Web-Based Access**: No Excel required - all data viewable in browser
 
 ## 🧪 Testing
 

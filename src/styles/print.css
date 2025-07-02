@@ -1,0 +1,85 @@
+@media print {
+  /* Hide elements not needed in print */
+  nav,
+  button,
+  input,
+  select,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Remove shadows and borders for cleaner print */
+  .shadow-lg,
+  .shadow-md {
+    box-shadow: none !important;
+  }
+
+  /* Ensure content fits on page */
+  body {
+    font-size: 12pt;
+    line-height: 1.5;
+  }
+
+  /* Page breaks */
+  .page-break-before {
+    page-break-before: always;
+  }
+
+  .page-break-after {
+    page-break-after: always;
+  }
+
+  /* Avoid breaking inside elements */
+  table,
+  .avoid-break {
+    page-break-inside: avoid;
+  }
+
+  /* Table styling for print */
+  table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+
+  th,
+  td {
+    border: 1px solid #ddd;
+    padding: 8px;
+  }
+
+  th {
+    background-color: #f3f4f6 !important;
+    font-weight: bold;
+  }
+
+  /* Ensure colors are visible in print */
+  .text-red-600 {
+    color: #dc2626 !important;
+  }
+
+  .text-yellow-600 {
+    color: #d97706 !important;
+  }
+
+  .text-green-600 {
+    color: #059669 !important;
+  }
+
+  /* Header styling */
+  h1, h2, h3 {
+    page-break-after: avoid;
+  }
+
+  /* Ensure risk labels are visible */
+  .bg-red-100 {
+    background-color: #fee2e2 !important;
+  }
+
+  .bg-yellow-100 {
+    background-color: #fef3c7 !important;
+  }
+
+  .bg-green-100 {
+    background-color: #d1fae5 !important;
+  }
+}

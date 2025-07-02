@@ -12,35 +12,68 @@ interface ResultsDashboardProps {
 export function ResultsDashboard({ results, jobId, onReset }: ResultsDashboardProps) {
   const [activeTab, setActiveTab] = useState<'insights' | 'salespeople' | 'customers'>('insights')
   const [isDownloading, setIsDownloading] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [sortBy, setSortBy] = useState<'value' | 'risk' | 'date'>('value')
 
-  const handleDownloadExcel = async () => {
+  const handleDownloadCSV = async () => {
     setIsDownloading(true)
     try {
-      const isDemoMode = (results as any).demo_mode
-      const endpoint = isDemoMode ? '#' : `/api/download/${jobId}`
+      // Generate CSV from the results data
+      const csvData = generateCSV(results.dormant_customers || [])
       
-      if (isDemoMode) {
-        alert('Excel download is not available in demo mode. Please configure Supabase for full functionality.')
-        return
-      }
-      
-      const response = await fetch(endpoint, {
-        method: 'POST'
-      })
-      
-      if (response.ok) {
-        const result = await response.json()
-        // For now, just show a message since we're not generating actual Excel files yet
-        alert(`Excel download feature is implemented! ${result.note}`)
-      } else {
-        alert('Failed to generate Excel report')
-      }
+      // Create blob and download
+      const blob = new Blob([csvData], { type: 'text/csv' })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `dormant-customers-${new Date().toISOString().split('T')[0]}.csv`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
     } catch (error) {
       console.error('Download error:', error)
-      alert('Failed to download report')
+      alert('Failed to download CSV')
     } finally {
       setIsDownloading(false)
     }
+  }
+
+  const generateCSV = (customers: any[]) => {
+    const headers = [
+      'Customer',
+      'Salesperson',
+      'Last Order Date',
+      'Days Since Order',
+      '6-Month Value',
+      'Order Count',
+      'Avg Order Value',
+      'Churn Risk',
+      'Lifetime Value',
+      'Preferred Products'
+    ]
+    
+    const rows = customers.map(c => [
+      c.customer,
+      c.salesperson,
+      c.last_order_date,
+      c.days_since_order,
+      c.total_6_month_value,
+      c.order_count_6_months,
+      c.average_order_value,
+      c.churn_risk_score,
+      c.customer_lifetime_value,
+      (c.preferred_products || []).join('; ')
+    ])
+    
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => 
+        typeof cell === 'string' && cell.includes(',') ? `"${cell}"` : cell
+      ).join(','))
+    ].join('\n')
+    
+    return csvContent
   }
 
   const formatCurrency = (amount: number) => {
@@ -89,7 +122,7 @@ export function ResultsDashboard({ results, jobId, onReset }: ResultsDashboardPr
         {/* Action Buttons */}
         <div className="flex space-x-4">
           <button
-            onClick={handleDownloadExcel}
+            onClick={handleDownloadCSV}
             disabled={isDownloading}
             className="flex items-center space-x-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
           >
@@ -103,9 +136,19 @@ export function ResultsDashboard({ results, jobId, onReset }: ResultsDashboardPr
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                <span>Download Excel Report</span>
+                <span>Download CSV</span>
               </>
             )}
+          </button>
+          
+          <button
+            onClick={() => window.print()}
+            className="flex items-center space-x-2 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+            </svg>
+            <span>Print Report</span>
           </button>
           
           <button
@@ -164,10 +207,10 @@ export function ResultsDashboard({ results, jobId, onReset }: ResultsDashboardPr
                 </div>
               </div>
 
-              {/* Summary Stats */}
+              {/* Summary Stats with Visual Charts */}
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">📊 Summary Statistics</h3>
-                <div className="grid md:grid-cols-4 gap-4">
+                <div className="grid md:grid-cols-4 gap-4 mb-6">
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <p className="text-sm text-gray-600">Total Customers</p>
                     <p className="text-2xl font-bold text-gray-900">
@@ -191,6 +234,37 @@ export function ResultsDashboard({ results, jobId, onReset }: ResultsDashboardPr
                     <p className="text-2xl font-bold text-yellow-600">
                       {formatPercentage(results.summary?.average_churn_risk || 0)}
                     </p>
+                  </div>
+                </div>
+                
+                {/* Risk Distribution Chart */}
+                <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                  <h4 className="text-sm font-medium text-gray-700 mb-3">Risk Distribution</h4>
+                  <div className="space-y-2">
+                    {(() => {
+                      const highRisk = results.dormant_customers?.filter(c => c.churn_risk_score > 0.7).length || 0
+                      const mediumRisk = results.dormant_customers?.filter(c => c.churn_risk_score > 0.4 && c.churn_risk_score <= 0.7).length || 0
+                      const lowRisk = results.dormant_customers?.filter(c => c.churn_risk_score <= 0.4).length || 0
+                      const total = highRisk + mediumRisk + lowRisk
+                      
+                      return [
+                        { label: 'High Risk', count: highRisk, color: 'bg-red-500' },
+                        { label: 'Medium Risk', count: mediumRisk, color: 'bg-yellow-500' },
+                        { label: 'Low Risk', count: lowRisk, color: 'bg-green-500' }
+                      ].map(item => (
+                        <div key={item.label} className="flex items-center space-x-3">
+                          <span className="text-sm text-gray-600 w-20">{item.label}</span>
+                          <div className="flex-1 bg-gray-200 rounded-full h-6 relative">
+                            <div 
+                              className={`${item.color} h-6 rounded-full flex items-center justify-end pr-2`}
+                              style={{ width: `${total > 0 ? (item.count / total) * 100 : 0}%` }}
+                            >
+                              <span className="text-xs text-white font-medium">{item.count}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    })()}
                   </div>
                 </div>
               </div>
@@ -277,10 +351,30 @@ export function ResultsDashboard({ results, jobId, onReset }: ResultsDashboardPr
             </div>
           )}
 
-          {/* Customers Tab */}
+          {/* Customers Tab with Search and Sort */}
           {activeTab === 'customers' && (
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">All Dormant Customers</h3>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">All Dormant Customers</h3>
+                <div className="flex space-x-4">
+                  <input
+                    type="text"
+                    placeholder="Search customers..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as 'value' | 'risk' | 'date')}
+                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="value">Sort by Value</option>
+                    <option value="risk">Sort by Risk</option>
+                    <option value="date">Sort by Last Order</option>
+                  </select>
+                </div>
+              </div>
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
@@ -306,8 +400,33 @@ export function ResultsDashboard({ results, jobId, onReset }: ResultsDashboardPr
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {results.dormant_customers?.slice(0, 50).map((customer, index) => (
-                      <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                    {(() => {
+                      let customers = results.dormant_customers || []
+                      
+                      // Filter by search term
+                      if (searchTerm) {
+                        customers = customers.filter(c => 
+                          c.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          c.salesperson.toLowerCase().includes(searchTerm.toLowerCase())
+                        )
+                      }
+                      
+                      // Sort
+                      customers = [...customers].sort((a, b) => {
+                        switch (sortBy) {
+                          case 'value':
+                            return b.total_6_month_value - a.total_6_month_value
+                          case 'risk':
+                            return b.churn_risk_score - a.churn_risk_score
+                          case 'date':
+                            return new Date(b.last_order_date).getTime() - new Date(a.last_order_date).getTime()
+                          default:
+                            return 0
+                        }
+                      })
+                      
+                      return customers.slice(0, 50).map((customer, index) => (
+                        <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           {customer.customer}
                         </td>
@@ -329,12 +448,13 @@ export function ResultsDashboard({ results, jobId, onReset }: ResultsDashboardPr
                           {customer.preferred_products?.slice(0, 2).join(', ')}
                         </td>
                       </tr>
-                    ))}
+                      ))
+                    })()}
                   </tbody>
                 </table>
                 {results.dormant_customers?.length > 50 && (
                   <p className="mt-4 text-sm text-gray-500 text-center">
-                    Showing first 50 customers. Download Excel report for complete list.
+                    Showing first 50 customers. Download CSV for complete list.
                   </p>
                 )}
               </div>
