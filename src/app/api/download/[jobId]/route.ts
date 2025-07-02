@@ -3,10 +3,10 @@ import { supabase } from '@/lib/supabase'
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { jobId: string } }
+  { params }: { params: Promise<{ jobId: string }> }
 ) {
   try {
-    const { jobId } = params
+    const { jobId } = await params
 
     // Check if job exists and is completed
     const { data: job, error: jobError } = await supabase
