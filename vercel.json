@@ -1,0 +1,27 @@
+{
+  "version": 2,
+  "name": "dormant-customer-tool",
+  "functions": {
+    "backend/src/main.py": {
+      "runtime": "@vercel/python"
+    }
+  },
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/backend/src/main.py"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ],
+  "env": {
+    "PYTHONPATH": "./backend"
+  },
+  "build": {
+    "env": {
+      "PYTHON_VERSION": "3.9"
+    }
+  }
+}
