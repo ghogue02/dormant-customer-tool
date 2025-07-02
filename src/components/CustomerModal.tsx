@@ -148,7 +148,7 @@ export function CustomerModal({ customer, onClose }: CustomerModalProps) {
           <div className="grid md:grid-cols-2 gap-6">
             {/* Win-Back Factors */}
             <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <h3 className="text-lg font-semibold mb-4">Win-Back Probability Factors</h3>
+              <h3 className="text-lg font-semibold mb-4 text-gray-900">Win-Back Probability Factors</h3>
               <div className="mb-3 p-3 bg-blue-50 rounded-lg">
                 <p className="text-sm text-blue-800 font-medium">How to Read This Chart:</p>
                 <p className="text-xs text-blue-700 mt-1">
@@ -192,7 +192,7 @@ export function CustomerModal({ customer, onClose }: CustomerModalProps) {
 
             {/* Product Preferences */}
             <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <h3 className="text-lg font-semibold mb-4">Top Products by Value</h3>
+              <h3 className="text-lg font-semibold mb-4 text-gray-900">Top Products by Value</h3>
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={productData} layout="horizontal">
                   <CartesianGrid strokeDasharray="3 3" />
@@ -208,14 +208,14 @@ export function CustomerModal({ customer, onClose }: CustomerModalProps) {
           {/* Seasonal Pattern & Order History */}
           <div className="grid md:grid-cols-2 gap-6">
             <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <h3 className="text-lg font-semibold mb-4">Seasonal Buying Pattern</h3>
+              <h3 className="text-lg font-semibold mb-4 text-gray-900">Seasonal Buying Pattern</h3>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-600">Pattern:</span>
-                  <span className="font-medium">{customer.seasonalPattern.pattern}</span>
+                  <span className="text-gray-900">Pattern:</span>
+                  <span className="font-medium text-gray-900">{customer.seasonalPattern.pattern}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-600">Confidence:</span>
+                  <span className="text-gray-900">Confidence:</span>
                   <div className="flex items-center">
                     <div className="w-24 bg-gray-200 rounded-full h-2 mr-2">
                       <div 
@@ -223,10 +223,10 @@ export function CustomerModal({ customer, onClose }: CustomerModalProps) {
                         style={{ width: `${customer.seasonalPattern.confidence * 100}%` }}
                       />
                     </div>
-                    <span className="text-sm">{(customer.seasonalPattern.confidence * 100).toFixed(0)}%</span>
+                    <span className="text-sm text-gray-900">{(customer.seasonalPattern.confidence * 100).toFixed(0)}%</span>
                   </div>
                 </div>
-                <p className="text-sm text-gray-600 mt-2">{customer.seasonalPattern.description}</p>
+                <p className="text-sm text-gray-900 mt-2">{customer.seasonalPattern.description}</p>
                 {customer.seasonalPattern.peakMonths.length > 0 && (
                   <div className="mt-3 p-3 bg-blue-50 rounded-lg">
                     <p className="text-sm text-blue-800">
@@ -238,24 +238,24 @@ export function CustomerModal({ customer, onClose }: CustomerModalProps) {
             </div>
 
             <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <h3 className="text-lg font-semibold mb-4">Order History Insights</h3>
+              <h3 className="text-lg font-semibold mb-4 text-gray-900">Order History Insights</h3>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-600">Customer Since:</span>
-                  <span className="font-medium">
+                  <span className="text-gray-900">Customer Since:</span>
+                  <span className="font-medium text-gray-900">
                     {new Date(customer.orderHistory.firstOrderDate).toLocaleDateString()}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-600">Average Order Gap:</span>
-                  <span className="font-medium">{Math.round(customer.orderHistory.averageOrderGap)} days</span>
+                  <span className="text-gray-900">Average Order Gap:</span>
+                  <span className="font-medium text-gray-900">{Math.round(customer.orderHistory.averageOrderGap)} days</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-600">Order Trend:</span>
+                  <span className="text-gray-900">Order Trend:</span>
                   <span className={`font-medium flex items-center ${
                     customer.orderHistory.orderTrend === 'increasing' ? 'text-green-600' :
                     customer.orderHistory.orderTrend === 'declining' ? 'text-red-600' :
-                    'text-gray-600'
+                    'text-gray-900'
                   }`}>
                     {customer.orderHistory.orderTrend === 'increasing' ? '📈' :
                      customer.orderHistory.orderTrend === 'declining' ? '📉' : '➡️'}
@@ -263,8 +263,8 @@ export function CustomerModal({ customer, onClose }: CustomerModalProps) {
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-600">Avg Order Value:</span>
-                  <span className="font-medium">{formatCurrency(customer.averageOrderValue)}</span>
+                  <span className="text-gray-900">Avg Order Value:</span>
+                  <span className="font-medium text-gray-900">{formatCurrency(customer.averageOrderValue)}</span>
                 </div>
               </div>
             </div>
@@ -272,7 +272,7 @@ export function CustomerModal({ customer, onClose }: CustomerModalProps) {
 
           {/* Product Details Table */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">Product Purchase History</h3>
+            <h3 className="text-lg font-semibold mb-4 text-gray-900">Product Purchase History</h3>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -297,7 +297,7 @@ export function CustomerModal({ customer, onClose }: CustomerModalProps) {
                         <span className={`flex items-center ${
                           pref.trend === 'increasing' ? 'text-green-600' :
                           pref.trend === 'decreasing' ? 'text-red-600' :
-                          'text-gray-600'
+                          'text-gray-900'
                         }`}>
                           {pref.trend === 'increasing' ? '↑' :
                            pref.trend === 'decreasing' ? '↓' : '→'}

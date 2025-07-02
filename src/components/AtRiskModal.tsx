@@ -245,12 +245,12 @@ export function AtRiskModal({ results, onClose, onSelectCustomer, onSelectSalesp
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Salesperson</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">6-Month Value</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Days Since Order</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Risk Level</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Win-Back</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-900 uppercase">Customer</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-900 uppercase">Salesperson</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-900 uppercase">6-Month Value</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-900 uppercase">Days Since Order</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-900 uppercase">Risk Level</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-900 uppercase">Win-Back</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -266,13 +266,13 @@ export function AtRiskModal({ results, onClose, onSelectCustomer, onSelectSalesp
                         <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
                           {customer.customer}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
                           {customer.salesperson}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 font-medium">
                           {formatCurrency(customer.total6MonthValue)}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
                           {customer.daysSinceOrder} days
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm">
@@ -293,7 +293,7 @@ export function AtRiskModal({ results, onClose, onSelectCustomer, onSelectSalesp
                                 style={{ width: `${customer.winBackProbability.score * 100}%` }}
                               />
                             </div>
-                            <span className="text-xs text-gray-600">
+                            <span className="text-xs text-gray-900">
                               {(customer.winBackProbability.score * 100).toFixed(0)}%
                             </span>
                           </div>
@@ -303,7 +303,7 @@ export function AtRiskModal({ results, onClose, onSelectCustomer, onSelectSalesp
                   </tbody>
                 </table>
                 {filteredCustomers.length > 50 && (
-                  <p className="mt-4 text-sm text-gray-500 text-center">
+                  <p className="mt-4 text-sm text-gray-900 text-center">
                     Showing first 50 customers. Use filters to narrow results.
                   </p>
                 )}

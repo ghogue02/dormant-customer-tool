@@ -512,25 +512,25 @@ export function EnhancedResultsDashboard({ results, onReset }: EnhancedResultsDa
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
                         Salesperson
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
                         Dormant
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
                         Value at Risk
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
                         Potential Recovery
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
                         Quick Wins
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
                         Avg Win-Back
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
                         Action
                       </th>
                     </tr>
@@ -545,16 +545,16 @@ export function EnhancedResultsDashboard({ results, onReset }: EnhancedResultsDa
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           {summary.salesperson}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {summary.dormantCustomerCount}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {formatCurrency(summary.totalValueAtRisk)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-medium">
                           {formatCurrency(summary.potentialRecovery)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {summary.quickWinCount}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -626,14 +626,14 @@ export function EnhancedResultsDashboard({ results, onReset }: EnhancedResultsDa
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Segment</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Location</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Last Order</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">6-Month Value</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Risk</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Win-Back</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Details</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-900 uppercase">Customer</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-900 uppercase">Segment</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-900 uppercase">Location</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-900 uppercase">Last Order</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-900 uppercase">6-Month Value</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-900 uppercase">Risk</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-900 uppercase">Win-Back</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-900 uppercase">Details</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -720,11 +720,11 @@ export function EnhancedResultsDashboard({ results, onReset }: EnhancedResultsDa
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customers</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Revenue</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Avg per Customer</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trend</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-900 uppercase">Product</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-900 uppercase">Customers</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-900 uppercase">Total Revenue</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-900 uppercase">Avg per Customer</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-900 uppercase">Trend</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
@@ -791,10 +791,10 @@ export function EnhancedResultsDashboard({ results, onReset }: EnhancedResultsDa
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customers</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Revenue</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Avg per Customer</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-900 uppercase">Product</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-900 uppercase">Customers</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-900 uppercase">Total Revenue</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-900 uppercase">Avg per Customer</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">

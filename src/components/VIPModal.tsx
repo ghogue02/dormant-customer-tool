@@ -364,13 +364,13 @@ export function VIPModal({
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">VIP Customer</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Salesperson</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">6-Month Value</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Days Dormant</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Risk Level</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Win-Back</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Priority Action</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-900 uppercase">VIP Customer</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-900 uppercase">Salesperson</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-900 uppercase">6-Month Value</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-900 uppercase">Days Dormant</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-900 uppercase">Risk Level</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-900 uppercase">Win-Back</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-900 uppercase">Priority Action</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -392,13 +392,13 @@ export function VIPModal({
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
                           {customer.salesperson}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm font-bold text-purple-600">
                           {formatCurrency(customer.total6MonthValue)}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
                           {customer.daysSinceOrder} days
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm">
