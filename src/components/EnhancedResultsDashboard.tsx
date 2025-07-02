@@ -5,6 +5,7 @@ import { EnhancedProcessingResult } from '@/lib/enhanced-data-processor'
 import { EnhancedCustomerData } from '@/lib/enhanced-analytics'
 import { SalespersonModal } from './SalespersonModal'
 import { CustomerModal } from './CustomerModal'
+import { AtRiskModal } from './AtRiskModal'
 import { 
   BarChart, Bar, PieChart, Pie, Cell, 
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
@@ -19,6 +20,7 @@ export function EnhancedResultsDashboard({ results, onReset }: EnhancedResultsDa
   const [activeTab, setActiveTab] = useState<'overview' | 'insights' | 'salespeople' | 'customers' | 'products'>('overview')
   const [selectedSalesperson, setSelectedSalesperson] = useState<any>(null)
   const [selectedCustomer, setSelectedCustomer] = useState<EnhancedCustomerData | null>(null)
+  const [showAtRiskModal, setShowAtRiskModal] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterSegment, setFilterSegment] = useState<string>('all')
   const [sortBy, setSortBy] = useState<'value' | 'risk' | 'winback'>('value')
@@ -271,10 +273,20 @@ export function EnhancedResultsDashboard({ results, onReset }: EnhancedResultsDa
             <div className="space-y-6">
               {/* Summary Cards */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-lg">
-                  <p className="text-sm text-blue-600 font-medium">Total at Risk</p>
+                <div 
+                  className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-lg cursor-pointer hover:shadow-lg transition-all border-2 border-transparent hover:border-blue-300"
+                  onClick={() => setShowAtRiskModal(true)}
+                  title={`Total at Risk Calculation:\n\n• Formula: Sum of all dormant customers' 6-month revenue\n• Dormant = Ordered in last 6 months BUT not in last 45 days\n• Represents revenue that could be lost if customers don't return\n• ${results.summary.totalDormantCustomers} customers with average of ${formatCurrency(results.summary.totalValueAtRisk / results.summary.totalDormantCustomers)} per customer\n\nClick to see detailed at-risk analysis`}
+                >
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-blue-600 font-medium">Total at Risk</p>
+                    <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
                   <p className="text-3xl font-bold text-blue-900">{formatCurrency(results.summary.totalValueAtRisk)}</p>
                   <p className="text-xs text-blue-700 mt-1">{results.summary.totalDormantCustomers} customers</p>
+                  <p className="text-xs text-blue-600 mt-2 font-medium">Click for detailed analysis →</p>
                 </div>
                 <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-lg">
                   <p className="text-sm text-green-600 font-medium">Projected Recovery</p>
@@ -787,6 +799,21 @@ export function EnhancedResultsDashboard({ results, onReset }: EnhancedResultsDa
         <CustomerModal
           customer={selectedCustomer}
           onClose={() => setSelectedCustomer(null)}
+        />
+      )}
+
+      {showAtRiskModal && (
+        <AtRiskModal
+          results={results}
+          onClose={() => setShowAtRiskModal(false)}
+          onSelectCustomer={(customer) => {
+            setShowAtRiskModal(false)
+            setSelectedCustomer(customer)
+          }}
+          onSelectSalesperson={(salesperson) => {
+            setShowAtRiskModal(false)
+            setSelectedSalesperson(salesperson)
+          }}
         />
       )}
     </div>
