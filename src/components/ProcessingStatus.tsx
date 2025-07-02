@@ -1,22 +1,28 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
+import type { ProcessingResult, AnalysisResults } from '@/types'
 
 interface ProcessingStatusProps {
-  result: {
-    job_id: string
-    status: string
-    progress: number
-    message: string
-    result_summary?: any
-    error?: string
-  }
-  onComplete: (results: any) => void
+  result: ProcessingResult
+  onComplete: (results: AnalysisResults) => void
   onReset: () => void
 }
 
 export function ProcessingStatus({ result, onComplete, onReset }: ProcessingStatusProps) {
   const [currentStatus, setCurrentStatus] = useState(result)
+
+  const fetchResults = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/results/${result.job_id}`)
+      if (response.ok) {
+        const results = await response.json()
+        onComplete(results)
+      }
+    } catch (error) {
+      console.error('Error fetching results:', error)
+    }
+  }, [result.job_id, onComplete])
 
   useEffect(() => {
     if (result.status === 'completed') {
@@ -50,19 +56,7 @@ export function ProcessingStatus({ result, onComplete, onReset }: ProcessingStat
     }, 2000)
 
     return () => clearInterval(interval)
-  }, [result.job_id])
-
-  const fetchResults = async () => {
-    try {
-      const response = await fetch(`/api/results/${result.job_id}`)
-      if (response.ok) {
-        const results = await response.json()
-        onComplete(results)
-      }
-    } catch (error) {
-      console.error('Error fetching results:', error)
-    }
-  }
+  }, [result.job_id, result.status, fetchResults])
 
   const getStatusColor = () => {
     switch (currentStatus.status) {

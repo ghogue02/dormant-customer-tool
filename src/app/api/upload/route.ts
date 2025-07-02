@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     // Create analysis job
     const jobId = uuidv4()
     
-    const { data: job, error: jobError } = await supabase
+    const { error: jobError } = await supabase
       .from('analysis_jobs')
       .insert({
         id: jobId,
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
 
     // Start processing (this would trigger a background job in production)
     // For now, we'll simulate the processing
-    await startProcessing(jobId, salesPath, planningPath)
+    await startProcessing(jobId)
 
     return NextResponse.json({
       job_id: jobId,
@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function startProcessing(jobId: string, salesPath: string, planningPath: string) {
+async function startProcessing(jobId: string) {
   try {
     // Update job status to processing
     await supabase

@@ -1,9 +1,10 @@
 'use client'
 
 import { useState } from 'react'
+import type { AnalysisResults } from '@/types'
 
 interface ResultsDashboardProps {
-  results: any
+  results: AnalysisResults
   jobId: string
   onReset: () => void
 }
@@ -238,7 +239,7 @@ export function ResultsDashboard({ results, jobId, onReset }: ResultsDashboardPr
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {results.salesperson_summaries?.map((summary: any, index: number) => (
+                    {results.salesperson_summaries?.map((summary, index) => (
                       <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           {summary.salesperson}
@@ -297,7 +298,7 @@ export function ResultsDashboard({ results, jobId, onReset }: ResultsDashboardPr
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {results.dormant_customers?.slice(0, 50).map((customer: any, index: number) => (
+                    {results.dormant_customers?.slice(0, 50).map((customer, index) => (
                       <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           {customer.customer}

@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import type { ProcessingResult } from '@/types'
 
 interface FileUploadSectionProps {
-  onFilesUploaded: (result: any) => void
+  onFilesUploaded: (result: ProcessingResult) => void
 }
 
 export function FileUploadSection({ onFilesUploaded }: FileUploadSectionProps) {

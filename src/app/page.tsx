@@ -6,30 +6,18 @@ import { ProcessingStatus } from '@/components/ProcessingStatus'
 import { ResultsDashboard } from '@/components/ResultsDashboard'
 import { Header } from '@/components/Header'
 import { DataQualityIndicator } from '@/components/DataQualityIndicator'
-
-interface ProcessingResult {
-  job_id: string
-  status: 'uploading' | 'processing' | 'completed' | 'failed'
-  progress: number
-  message: string
-  result_summary?: {
-    dormant_customers: number
-    total_value_at_risk: number
-    data_accuracy: number
-  }
-  error?: string
-}
+import type { ProcessingResult, AnalysisResults } from '@/types'
 
 export default function Home() {
   const [processingResult, setProcessingResult] = useState<ProcessingResult | null>(null)
-  const [results, setResults] = useState<any>(null)
+  const [results, setResults] = useState<AnalysisResults | null>(null)
 
   const handleFilesUploaded = useCallback((result: ProcessingResult) => {
     setProcessingResult(result)
     setResults(null) // Clear previous results
   }, [])
 
-  const handleProcessingComplete = useCallback((finalResults: any) => {
+  const handleProcessingComplete = useCallback((finalResults: AnalysisResults) => {
     setResults(finalResults)
   }, [])
 
@@ -91,7 +79,7 @@ export default function Home() {
           {!processingResult && (
             <div className="mt-16">
               <h2 className="text-2xl font-bold text-gray-900 text-center mb-8">
-                What You'll Get
+                What You&apos;ll Get
               </h2>
               
               <div className="grid md:grid-cols-3 gap-8">
