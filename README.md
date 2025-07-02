@@ -13,9 +13,19 @@ A modern web application that automates dormant customer reporting with AI-power
 
 ## 📋 What It Does
 
-1. **Identifies Dormant Customers**: Finds customers who ordered in the last 6 months but not in the last 45 days
+1. **Identifies Dormant Customers**: 
+   - Analyzes your sales data to find the most recent transaction date
+   - Looks back 6 months from that date
+   - Identifies customers who ordered during those 6 months
+   - Flags those who haven't ordered in the last 45 days
+   - Example: If your data goes to June 30, 2025:
+     - Analyzes orders from January 1 to June 30, 2025
+     - Flags customers with no orders after May 15, 2025
+
 2. **Corrects Data Issues**: Automatically fixes salesperson assignments using current planning data
+
 3. **Generates Insights**: Creates actionable recommendations prioritized by value and risk
+
 4. **Interactive Dashboard**: Web-based results with search, sort, and filter capabilities
 
 ## 🛠 Technology Stack
@@ -40,12 +50,24 @@ A modern web application that automates dormant customer reporting with AI-power
 
 ## 🏃‍♂️ Quick Start
 
-### Prerequisites
+### Live Application
+**URL**: https://dormant-customer-tool.vercel.app
+
+No installation needed! Just visit the URL and upload your files.
+
+### File Requirements
+1. **Sales CSV**: Export from your system with columns:
+   - Posted date, Customer, Salesperson, Item, Qty., Net price
+   
+2. **Planning Excel**: Current customer assignments with columns:
+   - Customer, Assigned Rep
+
+### Local Development
+
+#### Prerequisites
 - Python 3.8+
 - Node.js 18+
 - npm or yarn
-
-### Local Development
 
 1. **Backend Setup**
    ```bash
@@ -82,19 +104,21 @@ A modern web application that automates dormant customer reporting with AI-power
 ### Using the Application
 
 1. **Prepare Your Files**:
-   - Sales Report: CSV file with transaction data
+   - Sales Report: CSV file with transaction data (can be 10MB+)
    - Planning Sheet: Excel file with customer-to-salesperson mappings
+   - Files with title rows are automatically cleaned
 
 2. **Upload and Process**:
-   - Visit http://localhost:3000
-   - Upload both files using the drag-and-drop interface
-   - **Enable "Demo Mode"** to test without database setup
+   - Visit https://dormant-customer-tool.vercel.app
+   - Upload both files using the interface
+   - Large files (>4MB) are automatically preprocessed in your browser
    - Watch real-time processing progress
 
 3. **Review Results**:
    - View AI-powered strategic insights with visual risk distribution
    - Search and sort customer data interactively
-   - Download CSV for data analysis or print web report
+   - Download CSV for further analysis
+   - Print web report for meetings
 
 ### Troubleshooting
 
