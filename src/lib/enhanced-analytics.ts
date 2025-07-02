@@ -167,8 +167,10 @@ export function calculateWinBackProbability(
     recommendation = 'Very low probability - Monitor for re-engagement signals'
   }
 
-  // Estimate potential revenue (based on historical average)
-  const estimatedRevenue = customer.averageOrderValue * orderFrequency * 6 // 6 month projection
+  // Estimate potential revenue based on historical patterns
+  // Use customer's 6-month value as baseline, adjusted by win-back probability
+  const baselineRevenue = customer.total6MonthValue || customer.averageOrderValue * 2
+  const estimatedRevenue = Math.max(baselineRevenue * 0.5, customer.averageOrderValue || 500) // Conservative estimate
 
   return {
     score,

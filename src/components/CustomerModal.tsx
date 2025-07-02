@@ -149,15 +149,45 @@ export function CustomerModal({ customer, onClose }: CustomerModalProps) {
             {/* Win-Back Factors */}
             <div className="bg-white border border-gray-200 rounded-lg p-4">
               <h3 className="text-lg font-semibold mb-4">Win-Back Probability Factors</h3>
+              <div className="mb-3 p-3 bg-blue-50 rounded-lg">
+                <p className="text-sm text-blue-800 font-medium">How to Read This Chart:</p>
+                <p className="text-xs text-blue-700 mt-1">
+                  • <strong>Outer edge (100%)</strong> = Excellent score for that factor<br/>
+                  • <strong>Center (0%)</strong> = Poor score for that factor<br/>
+                  • <strong>Larger blue area</strong> = Higher overall win-back probability
+                </p>
+              </div>
               <ResponsiveContainer width="100%" height={250}>
                 <RadarChart data={radarData}>
                   <PolarGrid />
-                  <PolarAngleAxis dataKey="factor" />
-                  <PolarRadiusAxis angle={90} domain={[0, 100]} />
-                  <Radar name="Score" dataKey="score" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.6} />
-                  <Tooltip />
+                  <PolarAngleAxis dataKey="factor" tick={{ fontSize: 12 }} />
+                  <PolarRadiusAxis 
+                    angle={90} 
+                    domain={[0, 100]} 
+                    tick={{ fontSize: 10 }}
+                    tickFormatter={(value) => `${value}%`}
+                  />
+                  <Radar 
+                    name="Score" 
+                    dataKey="score" 
+                    stroke="#3b82f6" 
+                    fill="#3b82f6" 
+                    fillOpacity={0.3}
+                    strokeWidth={2}
+                  />
+                  <Tooltip 
+                    formatter={(value: number) => [`${value.toFixed(1)}%`, 'Score']}
+                    labelFormatter={(label) => `${label} Factor`}
+                  />
                 </RadarChart>
               </ResponsiveContainer>
+              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                <div><strong>Recency:</strong> How recently they ordered (30% weight)</div>
+                <div><strong>Frequency:</strong> How often they order (25% weight)</div>
+                <div><strong>Value:</strong> How much they spend (25% weight)</div>
+                <div><strong>Seasonal:</strong> Seasonal buying patterns (10% weight)</div>
+                <div><strong>Diversity:</strong> Product variety purchased (10% weight)</div>
+              </div>
             </div>
 
             {/* Product Preferences */}

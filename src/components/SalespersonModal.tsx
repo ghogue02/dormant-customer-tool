@@ -69,9 +69,13 @@ export function SalespersonModal({ salesperson, customers, onClose, onSelectCust
               <p className="text-sm text-gray-600">Value at Risk</p>
               <p className="text-2xl font-bold text-red-600">{formatCurrency(salesperson.totalValueAtRisk)}</p>
             </div>
-            <div className="bg-green-50 p-4 rounded-lg">
+            <div 
+              className="bg-green-50 p-4 rounded-lg cursor-help" 
+              title={`Potential Recovery Calculation:\n• Sum of (Customer's baseline revenue × Win-back probability)\n• Based on each customer's historical spending patterns\n• Conservative estimate for next 6 months\n• Higher win-back scores = higher potential recovery`}
+            >
               <p className="text-sm text-gray-600">Potential Recovery</p>
               <p className="text-2xl font-bold text-green-600">{formatCurrency(salesperson.potentialRecovery || 0)}</p>
+              <p className="text-xs text-gray-500 mt-1">Next 6 months ⓘ</p>
             </div>
             <div className="bg-blue-50 p-4 rounded-lg">
               <p className="text-sm text-gray-600">Quick Wins</p>
@@ -124,29 +128,6 @@ export function SalespersonModal({ salesperson, customers, onClose, onSelectCust
             </div>
           </div>
 
-          {/* Top Products */}
-          <div className="bg-white border border-gray-200 rounded-lg p-4">
-            <h3 className="text-lg font-semibold mb-4 text-gray-900">Top Wine Products by Revenue</h3>
-            {productData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={productData} layout="horizontal">
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" tickFormatter={(value) => `$${value}`} />
-                  <YAxis dataKey="product" type="category" width={150} />
-                  <Tooltip formatter={(value: number) => formatCurrency(value)} />
-                  <Bar dataKey="value" fill="#3b82f6" />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center h-64 text-gray-500">
-                <div className="text-center">
-                  <p className="text-lg mb-2">📦</p>
-                  <p className="text-sm">No wine product data available</p>
-                  <p className="text-xs text-gray-400 mt-1">This rep's customers may have only purchased non-wine items</p>
-                </div>
-              </div>
-            )}
-          </div>
 
           {/* Customer List */}
           <div>
