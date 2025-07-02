@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { processFiles } from '@/lib/data-processor'
 import { processLargeFiles } from '@/lib/data-processor-chunked'
+import { processFilesEnhanced } from '@/lib/enhanced-data-processor'
 import { kv } from '@vercel/kv'
 import { nanoid } from 'nanoid'
 
@@ -38,10 +39,15 @@ export async function POST(request: NextRequest) {
     console.log(`Processing ${salesFile.name} (${(salesFile.size / 1024 / 1024).toFixed(2)}MB)`)
     console.log(`Processing ${planningFile.name} (${(planningFile.size / 1024).toFixed(2)}KB)`)
 
-    // Use chunked processing for large files
-    const results = salesFile.size > 5 * 1024 * 1024 
-      ? await processLargeFiles(salesContent, planningBuffer)
-      : await processFiles(salesContent, planningBuffer)
+    // Use enhanced processing for all files
+    const results = await processFilesEnhanced(salesContent, planningBuffer)
+    
+    // Log summary for debugging
+    console.log('Enhanced processing complete:', {
+      dormantCustomers: results.dormantCustomers.length,
+      segments: results.customerSegments,
+      avgWinBack: results.summary.averageWinBackProbability
+    })
 
     // Generate unique ID for this analysis
     const analysisId = nanoid(10)

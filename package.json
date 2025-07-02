@@ -18,6 +18,7 @@
     "test:all": "npm run typecheck && npm run test:backend"
   },
   "dependencies": {
+    "@react-google-maps/api": "^2.20.7",
     "@supabase/auth-helpers-nextjs": "^0.8.7",
     "@supabase/auth-helpers-react": "^0.4.2",
     "@supabase/supabase-js": "^2.45.4",
@@ -28,6 +29,8 @@
     "papaparse": "^5.5.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-modal": "^3.16.3",
+    "recharts": "^3.0.2",
     "uuid": "^10.0.0",
     "xlsx": "^0.18.5"
   },

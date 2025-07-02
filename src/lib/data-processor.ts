@@ -10,6 +10,12 @@ export interface CustomerData {
   orderCount6Months: number
   averageOrderValue: number
   items: string[]
+  locationData?: {
+    city: string
+    state: string
+    postalCode: string
+  }
+  allOrders: any[]  // Store all order records for enhanced analytics
 }
 
 export interface DormantCustomer extends CustomerData {
@@ -32,8 +38,13 @@ export interface ProcessingResult {
   dataQualityReport: {
     totalRecords: number
     validRecords: number
+    recordsInWindow?: number
+    dataCompleteness?: string
+    windowCoverage?: string
     issues: string[]
   }
+  revenueForecasts?: any
+  customerSegments?: Record<string, number>
 }
 
 export async function processFiles(
@@ -122,6 +133,13 @@ export async function processFiles(
           // Get correct salesperson from planning sheet
           const correctRep = customerToRep.get(customer.toLowerCase()) || row.Salesperson || 'Unassigned'
           
+          // Extract location data
+          const locationData = {
+            city: row['Shipping address city'] || '',
+            state: row['Shipping address province'] || '',
+            postalCode: row['Shipping address postal code'] || ''
+          }
+          
           customerMap.set(customer, {
             customer,
             salesperson: correctRep,
@@ -130,7 +148,9 @@ export async function processFiles(
             total6MonthValue: 0,
             orderCount6Months: 0,
             averageOrderValue: 0,
-            items: []
+            items: [],
+            locationData,
+            allOrders: []
           })
         }
 
@@ -147,6 +167,9 @@ export async function processFiles(
         if (!customerData.items.includes(item)) {
           customerData.items.push(item)
         }
+        
+        // Store the full order record for enhanced analytics
+        customerData.allOrders.push(row)
       }
     } catch (error) {
       issues.push(`Error processing row: ${error}`)

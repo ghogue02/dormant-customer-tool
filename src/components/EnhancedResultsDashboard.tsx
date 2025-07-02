@@ -1,0 +1,779 @@
+'use client'
+
+import { useState, useMemo } from 'react'
+import { EnhancedProcessingResult } from '@/lib/enhanced-data-processor'
+import { EnhancedCustomerData } from '@/lib/enhanced-analytics'
+import { SalespersonModal } from './SalespersonModal'
+import { CustomerModal } from './CustomerModal'
+import { 
+  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, 
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  ComposedChart, Area
+} from 'recharts'
+
+interface EnhancedResultsDashboardProps {
+  results: EnhancedProcessingResult
+  onReset: () => void
+}
+
+export function EnhancedResultsDashboard({ results, onReset }: EnhancedResultsDashboardProps) {
+  const [activeTab, setActiveTab] = useState<'overview' | 'insights' | 'salespeople' | 'customers' | 'products' | 'geographic'>('overview')
+  const [selectedSalesperson, setSelectedSalesperson] = useState<any>(null)
+  const [selectedCustomer, setSelectedCustomer] = useState<EnhancedCustomerData | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [filterSegment, setFilterSegment] = useState<string>('all')
+  const [sortBy, setSortBy] = useState<'value' | 'risk' | 'winback'>('value')
+
+  // Colors for consistent visualization
+  const COLORS = {
+    segments: {
+      'VIP': '#9333ea',
+      'Regular': '#3b82f6',
+      'Occasional': '#f59e0b',
+      'At-Risk': '#ef4444',
+      'Lost': '#6b7280'
+    },
+    risk: {
+      low: '#10b981',
+      medium: '#f59e0b',
+      high: '#ef4444'
+    },
+    charts: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
+  }
+
+  // Format currency helper
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount)
+  }
+
+  // Filter and sort customers
+  const filteredCustomers = useMemo(() => {
+    let filtered = results.dormantCustomers
+
+    // Search filter
+    if (searchTerm) {
+      filtered = filtered.filter(c => 
+        c.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.salesperson.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.locationData.city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.locationData.state?.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    }
+
+    // Segment filter
+    if (filterSegment !== 'all') {
+      filtered = filtered.filter(c => c.segment.segment === filterSegment)
+    }
+
+    // Sort
+    return filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'value':
+          return b.total6MonthValue - a.total6MonthValue
+        case 'risk':
+          return b.churnRiskScore - a.churnRiskScore
+        case 'winback':
+          return b.winBackProbability.score - a.winBackProbability.score
+        default:
+          return 0
+      }
+    })
+  }, [results.dormantCustomers, searchTerm, filterSegment, sortBy])
+
+  // Generate data for charts
+  const segmentChartData = Object.entries(results.customerSegments).map(([segment, count]) => ({
+    name: segment,
+    value: count,
+    fill: COLORS.segments[segment as keyof typeof COLORS.segments] || '#6b7280'
+  }))
+
+  const riskDistribution = [
+    { 
+      name: 'Low Risk', 
+      value: results.dormantCustomers.filter(c => c.churnRiskScore <= 0.4).length,
+      fill: COLORS.risk.low
+    },
+    { 
+      name: 'Medium Risk', 
+      value: results.dormantCustomers.filter(c => c.churnRiskScore > 0.4 && c.churnRiskScore <= 0.7).length,
+      fill: COLORS.risk.medium
+    },
+    { 
+      name: 'High Risk', 
+      value: results.dormantCustomers.filter(c => c.churnRiskScore > 0.7).length,
+      fill: COLORS.risk.high
+    }
+  ]
+
+  const geographicData = Object.entries(results.geographicDistribution)
+    .map(([state, data]) => ({
+      state,
+      customers: data.count,
+      value: data.value
+    }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 10)
+
+  // Revenue forecast chart data
+  const forecastData = results.revenueForecasts.timeline.map((item, index) => ({
+    ...item,
+    cumulative: results.revenueForecasts.timeline
+      .slice(0, index + 1)
+      .reduce((sum, i) => sum + i.projected, 0)
+  }))
+
+  // Export functionality
+  const exportToCSV = () => {
+    const headers = [
+      'Customer', 'Salesperson', 'Segment', 'Last Order Date', 'Days Since Order',
+      '6-Month Value', 'Churn Risk', 'Win-Back Probability', 'Location', 'Top Products'
+    ]
+
+    const rows = filteredCustomers.map(c => [
+      c.customer,
+      c.salesperson,
+      c.segment.segment,
+      new Date(c.lastOrderDate).toLocaleDateString(),
+      c.daysSinceOrder,
+      c.total6MonthValue.toFixed(2),
+      (c.churnRiskScore * 100).toFixed(1) + '%',
+      (c.winBackProbability.score * 100).toFixed(1) + '%',
+      `${c.locationData.city}, ${c.locationData.state}`,
+      c.productPreferences.slice(0, 3).map(p => p.product).join('; ')
+    ])
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => 
+        typeof cell === 'string' && cell.includes(',') ? `"${cell}"` : cell
+      ).join(','))
+    ].join('\n')
+
+    const blob = new Blob([csvContent], { type: 'text/csv' })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `dormant-customers-${new Date().toISOString().split('T')[0]}.csv`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    window.URL.revokeObjectURL(url)
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header with Actions */}
+      <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Enhanced Analysis Complete!</h2>
+            <p className="text-gray-600">
+              {results.dormantCustomers.length} dormant customers identified with {(results.summary.averageWinBackProbability * 100).toFixed(0)}% average win-back probability
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-sm text-gray-500">Report generated</p>
+            <p className="text-sm font-medium text-gray-900">
+              {new Date().toLocaleString()}
+            </p>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex flex-wrap gap-3">
+          <button
+            onClick={exportToCSV}
+            className="flex items-center space-x-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <span>Export to CSV</span>
+          </button>
+          
+          <button
+            onClick={() => window.print()}
+            className="flex items-center space-x-2 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+            </svg>
+            <span>Print Report</span>
+          </button>
+          
+          <button
+            onClick={onReset}
+            className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Analyze New Files
+          </button>
+        </div>
+      </div>
+
+      {/* Navigation Tabs */}
+      <div className="bg-white rounded-xl shadow-lg border border-gray-200">
+        <div className="border-b border-gray-200">
+          <nav className="flex flex-wrap">
+            {[
+              { id: 'overview', label: '📊 Overview', count: null },
+              { id: 'insights', label: '💡 Key Insights', count: null },
+              { id: 'salespeople', label: '👥 By Salesperson', count: results.salespersonSummaries.length },
+              { id: 'customers', label: '🏢 Customers', count: results.dormantCustomers.length },
+              { id: 'products', label: '🍷 Products', count: results.productInsights.topProducts.length },
+              { id: 'geographic', label: '📍 Geographic', count: Object.keys(results.geographicDistribution).length }
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`py-4 px-6 font-medium text-sm transition-colors border-b-2 ${
+                  activeTab === tab.id
+                    ? 'border-blue-500 text-blue-600 bg-blue-50'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                {tab.label}
+                {tab.count !== null && (
+                  <span className="ml-2 bg-gray-100 text-gray-600 py-1 px-2 rounded-full text-xs">
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        <div className="p-6">
+          {/* Overview Tab */}
+          {activeTab === 'overview' && (
+            <div className="space-y-6">
+              {/* Summary Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-lg">
+                  <p className="text-sm text-blue-600 font-medium">Total at Risk</p>
+                  <p className="text-3xl font-bold text-blue-900">{formatCurrency(results.summary.totalValueAtRisk)}</p>
+                  <p className="text-xs text-blue-700 mt-1">{results.summary.totalDormantCustomers} customers</p>
+                </div>
+                <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-lg">
+                  <p className="text-sm text-green-600 font-medium">Projected Recovery</p>
+                  <p className="text-3xl font-bold text-green-900">{formatCurrency(results.revenueForecasts.realistic)}</p>
+                  <p className="text-xs text-green-700 mt-1">Next 6 months</p>
+                </div>
+                <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-lg">
+                  <p className="text-sm text-purple-600 font-medium">VIP Customers</p>
+                  <p className="text-3xl font-bold text-purple-900">{results.customerSegments['VIP'] || 0}</p>
+                  <p className="text-xs text-purple-700 mt-1">Require immediate attention</p>
+                </div>
+                <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-6 rounded-lg">
+                  <p className="text-sm text-orange-600 font-medium">Quick Wins</p>
+                  <p className="text-3xl font-bold text-orange-900">
+                    {results.dormantCustomers.filter(c => c.winBackProbability.score > 0.7).length}
+                  </p>
+                  <p className="text-xs text-orange-700 mt-1">&gt;70% win-back probability</p>
+                </div>
+              </div>
+
+              {/* Charts Row 1 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Customer Segments */}
+                <div className="bg-white border border-gray-200 rounded-lg p-4">
+                  <h3 className="text-lg font-semibold mb-4">Customer Segments</h3>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={segmentChartData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, value, percent }) => 
+                          `${name}: ${value} (${(percent * 100).toFixed(0)}%)`
+                        }
+                        outerRadius={100}
+                        dataKey="value"
+                      >
+                        {segmentChartData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.fill} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Risk Distribution */}
+                <div className="bg-white border border-gray-200 rounded-lg p-4">
+                  <h3 className="text-lg font-semibold mb-4">Risk Distribution</h3>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={riskDistribution}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="value">
+                        {riskDistribution.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.fill} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Revenue Forecast */}
+              <div className="bg-white border border-gray-200 rounded-lg p-4">
+                <h3 className="text-lg font-semibold mb-4">Revenue Recovery Forecast</h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <ComposedChart data={forecastData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`} />
+                    <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                    <Legend />
+                    <Bar dataKey="projected" name="Monthly Recovery" fill="#3b82f6" />
+                    <Line 
+                      type="monotone" 
+                      dataKey="cumulative" 
+                      name="Cumulative Recovery" 
+                      stroke="#10b981" 
+                      strokeWidth={2}
+                    />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+
+          {/* Insights Tab */}
+          {activeTab === 'insights' && (
+            <div className="space-y-6">
+              {/* Main Insights */}
+              <div className="space-y-4">
+                {Object.entries(results.insights).map(([key, insight]) => (
+                  <div key={key} className={`p-4 rounded-lg border ${
+                    key === 'vipAlert' && results.customerSegments['VIP'] > 0 
+                      ? 'bg-purple-50 border-purple-200' 
+                      : 'bg-blue-50 border-blue-200'
+                  }`}>
+                    <p className={`${
+                      key === 'vipAlert' && results.customerSegments['VIP'] > 0 
+                        ? 'text-purple-800' 
+                        : 'text-blue-800'
+                    }`}>
+                      {insight as string}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Revenue Scenarios */}
+              <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <h3 className="text-lg font-semibold mb-4">Revenue Recovery Scenarios</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg">
+                    <div>
+                      <p className="font-medium text-green-900">Optimistic Scenario</p>
+                      <p className="text-sm text-green-700">High engagement, all segments respond well</p>
+                    </div>
+                    <p className="text-2xl font-bold text-green-900">{formatCurrency(results.revenueForecasts.optimistic)}</p>
+                  </div>
+                  <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
+                    <div>
+                      <p className="font-medium text-blue-900">Realistic Scenario</p>
+                      <p className="text-sm text-blue-700">Expected outcome based on win-back probabilities</p>
+                    </div>
+                    <p className="text-2xl font-bold text-blue-900">{formatCurrency(results.revenueForecasts.realistic)}</p>
+                  </div>
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="font-medium text-gray-900">Conservative Scenario</p>
+                      <p className="text-sm text-gray-700">Lower engagement, only high-probability customers respond</p>
+                    </div>
+                    <p className="text-2xl font-bold text-gray-900">{formatCurrency(results.revenueForecasts.conservative)}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Top Products */}
+              <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <h3 className="text-lg font-semibold mb-4">Top Products Among Dormant Customers</h3>
+                <div className="space-y-3">
+                  {results.summary.topProducts.map((product, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <span className="font-medium text-gray-900">{product.product}</span>
+                      <span className="text-gray-600">{formatCurrency(product.revenue)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Salespeople Tab */}
+          {activeTab === 'salespeople' && (
+            <div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Salesperson
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Dormant
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Value at Risk
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Potential Recovery
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Quick Wins
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Avg Win-Back
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Action
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {results.salespersonSummaries.map((summary, index) => (
+                      <tr 
+                        key={index} 
+                        className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 cursor-pointer transition-colors`}
+                        onClick={() => setSelectedSalesperson(summary)}
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {summary.salesperson}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {summary.dormantCustomerCount}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {formatCurrency(summary.totalValueAtRisk)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-medium">
+                          {formatCurrency(summary.potentialRecovery)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {summary.quickWinCount}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          <div className="flex items-center">
+                            <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                              <div 
+                                className="bg-green-500 h-2 rounded-full"
+                                style={{ width: `${summary.averageWinBackProbability * 100}%` }}
+                              />
+                            </div>
+                            <span className="text-xs text-gray-600">
+                              {(summary.averageWinBackProbability * 100).toFixed(0)}%
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          <button className="text-blue-600 hover:text-blue-800">
+                            View Details →
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Customers Tab */}
+          {activeTab === 'customers' && (
+            <div>
+              {/* Filters */}
+              <div className="mb-6 space-y-4">
+                <div className="flex flex-wrap gap-4">
+                  <input
+                    type="text"
+                    placeholder="Search customers, cities, states..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="flex-1 min-w-[300px] px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <select
+                    value={filterSegment}
+                    onChange={(e) => setFilterSegment(e.target.value)}
+                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="all">All Segments</option>
+                    {Object.keys(results.customerSegments).map(segment => (
+                      <option key={segment} value={segment}>{segment}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as any)}
+                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="value">Sort by Value</option>
+                    <option value="risk">Sort by Risk</option>
+                    <option value="winback">Sort by Win-Back Probability</option>
+                  </select>
+                </div>
+                <p className="text-sm text-gray-600">
+                  Showing {filteredCustomers.length} of {results.dormantCustomers.length} customers
+                </p>
+              </div>
+
+              {/* Customer Table */}
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Segment</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Location</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Last Order</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">6-Month Value</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Risk</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Win-Back</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {filteredCustomers.slice(0, 50).map((customer, index) => (
+                      <tr 
+                        key={index} 
+                        className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 cursor-pointer transition-colors`}
+                        onClick={() => setSelectedCustomer(customer)}
+                      >
+                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {customer.customer}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            customer.segment.segment === 'VIP' ? 'bg-purple-100 text-purple-800' :
+                            customer.segment.segment === 'Regular' ? 'bg-blue-100 text-blue-800' :
+                            customer.segment.segment === 'At-Risk' ? 'bg-red-100 text-red-800' :
+                            customer.segment.segment === 'Occasional' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {customer.segment.segment}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                          {customer.locationData.city}, {customer.locationData.state}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                          {new Date(customer.lastOrderDate).toLocaleDateString()}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                          {formatCurrency(customer.total6MonthValue)}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            customer.churnRiskScore > 0.7 ? 'bg-red-100 text-red-800' :
+                            customer.churnRiskScore > 0.4 ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-green-100 text-green-800'
+                          }`}>
+                            {(customer.churnRiskScore * 100).toFixed(0)}%
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm">
+                          <div className="flex items-center">
+                            <div className="w-12 bg-gray-200 rounded-full h-2 mr-2">
+                              <div 
+                                className="bg-green-500 h-2 rounded-full"
+                                style={{ width: `${customer.winBackProbability.score * 100}%` }}
+                              />
+                            </div>
+                            <span className="text-xs text-gray-600">
+                              {(customer.winBackProbability.score * 100).toFixed(0)}%
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          <button className="text-blue-600 hover:text-blue-800 text-xs">
+                            View →
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {filteredCustomers.length > 50 && (
+                  <p className="mt-4 text-sm text-gray-500 text-center">
+                    Showing first 50 customers. Export CSV for complete list.
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Products Tab */}
+          {activeTab === 'products' && (
+            <div className="space-y-6">
+              {/* Product Performance */}
+              <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <h3 className="text-lg font-semibold mb-4">Top Products by Revenue (Dormant Customers)</h3>
+                <ResponsiveContainer width="100%" height={400}>
+                  <BarChart data={results.productInsights.topProducts} layout="horizontal">
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis type="number" tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`} />
+                    <YAxis 
+                      dataKey="product" 
+                      type="category" 
+                      width={200}
+                      tick={{ fontSize: 12 }}
+                    />
+                    <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                    <Bar dataKey="revenue" fill="#3b82f6" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Product Trends */}
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="bg-white border border-gray-200 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold mb-4 text-green-600">📈 Trending Up</h3>
+                  <div className="space-y-2">
+                    {results.productInsights.trendingUp.length > 0 ? (
+                      results.productInsights.trendingUp.slice(0, 10).map((product, index) => (
+                        <div key={index} className="p-3 bg-green-50 rounded-lg">
+                          <p className="text-sm text-green-800">{product}</p>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-gray-500">No trending up products identified</p>
+                    )}
+                  </div>
+                </div>
+                <div className="bg-white border border-gray-200 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold mb-4 text-red-600">📉 Trending Down</h3>
+                  <div className="space-y-2">
+                    {results.productInsights.trendingDown.length > 0 ? (
+                      results.productInsights.trendingDown.slice(0, 10).map((product, index) => (
+                        <div key={index} className="p-3 bg-red-50 rounded-lg">
+                          <p className="text-sm text-red-800">{product}</p>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-gray-500">No trending down products identified</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Product Customer Matrix */}
+              <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <h3 className="text-lg font-semibold mb-4">Product Performance Details</h3>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customers</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Revenue</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Avg per Customer</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {results.productInsights.topProducts.map((product, index) => (
+                        <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                          <td className="px-4 py-3 text-sm text-gray-900">{product.product}</td>
+                          <td className="px-4 py-3 text-sm text-gray-500">{product.customers}</td>
+                          <td className="px-4 py-3 text-sm text-gray-500">{formatCurrency(product.revenue)}</td>
+                          <td className="px-4 py-3 text-sm text-gray-500">
+                            {formatCurrency(product.revenue / product.customers)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Geographic Tab */}
+          {activeTab === 'geographic' && (
+            <div className="space-y-6">
+              {/* Geographic Distribution Chart */}
+              <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <h3 className="text-lg font-semibold mb-4">Value at Risk by State/Province</h3>
+                <ResponsiveContainer width="100%" height={400}>
+                  <BarChart data={geographicData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="state" angle={-45} textAnchor="end" height={100} />
+                    <YAxis yAxisId="left" tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`} />
+                    <YAxis yAxisId="right" orientation="right" />
+                    <Tooltip formatter={(value: number, name: string) => 
+                      name === 'value' ? formatCurrency(value) : value
+                    } />
+                    <Legend />
+                    <Bar yAxisId="left" dataKey="value" name="Value at Risk" fill="#3b82f6" />
+                    <Bar yAxisId="right" dataKey="customers" name="Customer Count" fill="#10b981" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Geographic Table */}
+              <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <h3 className="text-lg font-semibold mb-4">Geographic Details</h3>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">State/Province</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dormant Customers</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Value at Risk</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Average per Customer</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">% of Total</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {Object.entries(results.geographicDistribution)
+                        .sort((a, b) => b[1].value - a[1].value)
+                        .map(([state, data], index) => (
+                          <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                            <td className="px-4 py-3 text-sm font-medium text-gray-900">{state}</td>
+                            <td className="px-4 py-3 text-sm text-gray-500">{data.count}</td>
+                            <td className="px-4 py-3 text-sm text-gray-500">{formatCurrency(data.value)}</td>
+                            <td className="px-4 py-3 text-sm text-gray-500">
+                              {formatCurrency(data.value / data.count)}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-500">
+                              {((data.value / results.summary.totalValueAtRisk) * 100).toFixed(1)}%
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Modals */}
+      {selectedSalesperson && (
+        <SalespersonModal
+          salesperson={selectedSalesperson}
+          customers={results.dormantCustomers}
+          onClose={() => setSelectedSalesperson(null)}
+        />
+      )}
+
+      {selectedCustomer && (
+        <CustomerModal
+          customer={selectedCustomer}
+          onClose={() => setSelectedCustomer(null)}
+        />
+      )}
+    </div>
+  )
+}

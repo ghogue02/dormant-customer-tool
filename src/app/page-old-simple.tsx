@@ -75,10 +75,10 @@ export default function Home() {
       let processedSalesContent: string
       
       if (salesFile.size > 4 * 1024 * 1024) { // If larger than 4MB
-        setProcessingMessage('Processing large file... This may take a moment.')
+        setError('Processing large file... This may take a moment.')
         try {
           processedSalesContent = await preprocessSalesData(salesFile)
-          setProcessingMessage('Uploading processed data...')
+          setError(null) // Clear the processing message
           
           // Create a new smaller file from processed content
           const processedBlob = new Blob([processedSalesContent], { type: 'text/csv' })
@@ -145,6 +145,25 @@ export default function Home() {
     }
   }
 
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(amount)
+  }
+
+  const getRiskColor = (risk: number) => {
+    if (risk > 0.7) return 'text-red-600'
+    if (risk > 0.4) return 'text-yellow-600'
+    return 'text-green-600'
+  }
+
+  const getRiskLabel = (risk: number) => {
+    if (risk > 0.7) return 'High Risk'
+    if (risk > 0.4) return 'Medium Risk'
+    return 'Low Risk'
+  }
+
   if (results) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -160,6 +179,241 @@ export default function Home() {
               window.history.pushState({}, '', '/')
             }} 
           />
+        </main>
+      </div>
+    )
+  }
+
+  // Original upload UI when no results
+  if (false) {
+    return (
+      <div>
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Results Header */}
+          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Analysis Complete!</h2>
+                <p className="text-gray-600 mt-1">
+                  Found {results.summary.totalDormantCustomers} dormant customers
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setResults(null)
+                  setSalesFile(null)
+                  setPlanningFile(null)
+                  window.history.pushState({}, '', '/')
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                New Analysis
+              </button>
+            </div>
+
+            {/* Summary Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-600">Total Customers</p>
+                <p className="text-2xl font-bold">{results.summary.totalDormantCustomers}</p>
+              </div>
+              <div className="bg-red-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-600">Value at Risk</p>
+                <p className="text-2xl font-bold text-red-600">
+                  {formatCurrency(results.summary.totalValueAtRisk)}
+                </p>
+              </div>
+              <div className="bg-yellow-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-600">Avg Churn Risk</p>
+                <p className="text-2xl font-bold text-yellow-600">
+                  {(results.summary.averageChurnRisk * 100).toFixed(1)}%
+                </p>
+              </div>
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-600">Data Quality</p>
+                <p className="text-2xl font-bold text-blue-600">
+                  {(results.summary.dataQualityScore * 100).toFixed(1)}%
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Insights */}
+          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h3 className="text-lg font-semibold mb-4">Key Insights</h3>
+            <div className="space-y-3">
+              {Object.entries(results.insights).map(([key, insight]) => (
+                <div key={key} className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p className="text-blue-800">{insight as string}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Risk Calculation Legend */}
+          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h3 className="text-lg font-semibold mb-4">📊 How Risk is Calculated</h3>
+            <div className="space-y-4">
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-medium text-gray-900 mb-2">Churn Risk Score Components:</h4>
+                <ul className="space-y-2 text-sm text-gray-700">
+                  <li className="flex items-start">
+                    <span className="font-medium mr-2">50%</span>
+                    <span><strong>Days Since Last Order:</strong> Customers who haven't ordered recently are at higher risk. Scale: 0-180 days (180+ days = maximum risk)</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="font-medium mr-2">30%</span>
+                    <span><strong>Order Frequency:</strong> Customers with fewer orders are at higher risk. Scale: 1-12 orders (12+ orders = minimum risk)</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="font-medium mr-2">20%</span>
+                    <span><strong>Customer Value:</strong> Lower-value customers are at higher risk. Thresholds: &lt;$1k = high risk, $1k-$5k = medium risk, &gt;$5k = low risk</span>
+                  </li>
+                </ul>
+              </div>
+              
+              <div className="grid grid-cols-3 gap-4">
+                <div className="text-center">
+                  <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                    Low Risk (0-40%)
+                  </div>
+                  <p className="text-xs text-gray-600 mt-1">Quick wins for re-engagement</p>
+                </div>
+                <div className="text-center">
+                  <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                    Medium Risk (40-70%)
+                  </div>
+                  <p className="text-xs text-gray-600 mt-1">Requires targeted outreach</p>
+                </div>
+                <div className="text-center">
+                  <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                    High Risk (70-100%)
+                  </div>
+                  <p className="text-xs text-gray-600 mt-1">Urgent action needed</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Data Quality Explanation */}
+          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h3 className="text-lg font-semibold mb-4">📈 Data Quality Score</h3>
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <p className="text-sm text-gray-700 mb-2">
+                The data quality score of <strong>{(results.summary.dataQualityScore * 100).toFixed(1)}%</strong> represents the percentage of records in your file that have:
+              </p>
+              <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
+                <li>Valid date format</li>
+                <li>Customer name present</li>
+                <li>Parseable price data</li>
+              </ul>
+              <p className="text-sm text-gray-600 mt-3">
+                <strong>Note:</strong> Records outside the 6-month analysis window are still considered valid for quality scoring. Only records with missing or unparseable data reduce the quality score.
+              </p>
+              {results.dataQualityReport && (
+                <div className="mt-3 text-xs text-gray-600">
+                  <p>{results.dataQualityReport.dataCompleteness}</p>
+                  <p>{results.dataQualityReport.windowCoverage}</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Salesperson Summary */}
+          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h3 className="text-lg font-semibold mb-4">By Salesperson</h3>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      Salesperson
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      Dormant Count
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      Value at Risk
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      Avg Risk
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {results.salespersonSummaries.map((summary: any, index: number) => (
+                    <tr key={index}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {summary.salesperson}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {summary.dormantCustomerCount}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {formatCurrency(summary.totalValueAtRisk)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <span className={getRiskColor(summary.averageChurnRisk)}>
+                          {(summary.averageChurnRisk * 100).toFixed(1)}%
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Customer List */}
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h3 className="text-lg font-semibold mb-4">Dormant Customers (Top 20)</h3>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      Customer
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      Salesperson
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      Last Order
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      6-Month Value
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      Risk
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {results.dormantCustomers.slice(0, 20).map((customer: any, index: number) => (
+                    <tr key={index}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {customer.customer}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {customer.salesperson}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {new Date(customer.lastOrderDate).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {formatCurrency(customer.total6MonthValue)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <span className={`${getRiskColor(customer.churnRiskScore)} font-medium`}>
+                          {getRiskLabel(customer.churnRiskScore)}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </main>
       </div>
     )
@@ -306,7 +560,7 @@ export default function Home() {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                {processingMessage || 'Analyzing... This may take a moment'}
+                Analyzing... This may take a moment
               </span>
             ) : (
               'Analyze Files'
@@ -320,7 +574,7 @@ export default function Home() {
               <li>• We&apos;ll identify customers who ordered in the last 6 months but not in the last 45 days</li>
               <li>• Salesperson assignments will be corrected using your planning sheet</li>
               <li>• AI-powered insights will highlight priority customers and quick wins</li>
-              <li>• Interactive dashboard with customer segments, risk analysis, and revenue forecasts</li>
+              <li>• Results can be shared with your sales team via a unique link</li>
             </ul>
           </div>
         </div>
