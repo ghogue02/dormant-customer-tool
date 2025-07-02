@@ -6,9 +6,8 @@ import { EnhancedCustomerData } from '@/lib/enhanced-analytics'
 import { SalespersonModal } from './SalespersonModal'
 import { CustomerModal } from './CustomerModal'
 import { 
-  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, 
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  ComposedChart, Area
+  BarChart, Bar, PieChart, Pie, Cell, 
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts'
 
 interface EnhancedResultsDashboardProps {
@@ -17,7 +16,7 @@ interface EnhancedResultsDashboardProps {
 }
 
 export function EnhancedResultsDashboard({ results, onReset }: EnhancedResultsDashboardProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'insights' | 'salespeople' | 'customers' | 'products' | 'geographic'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'insights' | 'salespeople' | 'customers' | 'products'>('overview')
   const [selectedSalesperson, setSelectedSalesperson] = useState<any>(null)
   const [selectedCustomer, setSelectedCustomer] = useState<EnhancedCustomerData | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
@@ -110,22 +109,6 @@ export function EnhancedResultsDashboard({ results, onReset }: EnhancedResultsDa
     }
   ]
 
-  const geographicData = Object.entries(results.geographicDistribution)
-    .map(([state, data]) => ({
-      state,
-      customers: data.count,
-      value: data.value
-    }))
-    .sort((a, b) => b.value - a.value)
-    .slice(0, 10)
-
-  // Revenue forecast chart data
-  const forecastData = results.revenueForecasts.timeline.map((item, index) => ({
-    ...item,
-    cumulative: results.revenueForecasts.timeline
-      .slice(0, index + 1)
-      .reduce((sum, i) => sum + i.projected, 0)
-  }))
 
   // Export functionality
   const exportToCSV = () => {
@@ -224,8 +207,7 @@ export function EnhancedResultsDashboard({ results, onReset }: EnhancedResultsDa
               { id: 'insights', label: '💡 Key Insights', count: null },
               { id: 'salespeople', label: '👥 By Salesperson', count: results.salespersonSummaries.length },
               { id: 'customers', label: '🏢 Customers', count: results.dormantCustomers.length },
-              { id: 'products', label: '🍷 Products', count: results.productInsights.topProducts.length },
-              { id: 'geographic', label: '📍 Geographic', count: Object.keys(results.geographicDistribution).length }
+              { id: 'products', label: '🍷 Products', count: results.productInsights.topProducts.length }
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -323,26 +305,31 @@ export function EnhancedResultsDashboard({ results, onReset }: EnhancedResultsDa
                 </div>
               </div>
 
-              {/* Revenue Forecast */}
+              {/* Top Quick Win Opportunities */}
               <div className="bg-white border border-gray-200 rounded-lg p-4">
-                <h3 className="text-lg font-semibold mb-4">Revenue Recovery Forecast</h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <ComposedChart data={forecastData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`} />
-                    <Tooltip formatter={(value: number) => formatCurrency(value)} />
-                    <Legend />
-                    <Bar dataKey="projected" name="Monthly Recovery" fill="#3b82f6" />
-                    <Line 
-                      type="monotone" 
-                      dataKey="cumulative" 
-                      name="Cumulative Recovery" 
-                      stroke="#10b981" 
-                      strokeWidth={2}
-                    />
-                  </ComposedChart>
-                </ResponsiveContainer>
+                <h3 className="text-lg font-semibold mb-4">Top 10 Quick Win Opportunities</h3>
+                <div className="space-y-3">
+                  {results.dormantCustomers
+                    .filter(c => c.winBackProbability.score > 0.7)
+                    .sort((a, b) => b.winBackProbability.score - a.winBackProbability.score)
+                    .slice(0, 10)
+                    .map((customer, index) => (
+                      <div 
+                        key={index} 
+                        className="flex items-center justify-between p-3 bg-green-50 rounded-lg hover:bg-green-100 cursor-pointer transition-colors"
+                        onClick={() => setSelectedCustomer(customer)}
+                      >
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900">{customer.customer}</p>
+                          <p className="text-sm text-gray-600">Rep: {customer.salesperson} • Last order: {customer.daysSinceOrder} days ago</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-lg font-bold text-green-600">{(customer.winBackProbability.score * 100).toFixed(0)}%</p>
+                          <p className="text-sm text-gray-600">{formatCurrency(customer.winBackProbability.estimatedRevenue)}</p>
+                        </div>
+                      </div>
+                    ))}
+                </div>
               </div>
             </div>
           )}
@@ -369,30 +356,45 @@ export function EnhancedResultsDashboard({ results, onReset }: EnhancedResultsDa
                 ))}
               </div>
 
-              {/* Revenue Scenarios */}
+              {/* Actionable Recommendations */}
               <div className="bg-white border border-gray-200 rounded-lg p-6">
-                <h3 className="text-lg font-semibold mb-4">Revenue Recovery Scenarios</h3>
+                <h3 className="text-lg font-semibold mb-4">Actionable Recommendations</h3>
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg">
+                  <div className="flex items-start space-x-3">
+                    <span className="text-2xl">🎯</span>
                     <div>
-                      <p className="font-medium text-green-900">Optimistic Scenario</p>
-                      <p className="text-sm text-green-700">High engagement, all segments respond well</p>
+                      <p className="font-medium text-gray-900">Immediate Action Required</p>
+                      <p className="text-sm text-gray-600">
+                        {results.customerSegments['VIP'] || 0} VIP customers need personal outreach within 24 hours
+                      </p>
                     </div>
-                    <p className="text-2xl font-bold text-green-900">{formatCurrency(results.revenueForecasts.optimistic)}</p>
                   </div>
-                  <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
+                  <div className="flex items-start space-x-3">
+                    <span className="text-2xl">📞</span>
                     <div>
-                      <p className="font-medium text-blue-900">Realistic Scenario</p>
-                      <p className="text-sm text-blue-700">Expected outcome based on win-back probabilities</p>
+                      <p className="font-medium text-gray-900">Quick Win Opportunities</p>
+                      <p className="text-sm text-gray-600">
+                        {results.dormantCustomers.filter(c => c.winBackProbability.score > 0.7).length} customers have &gt;70% win-back probability
+                      </p>
                     </div>
-                    <p className="text-2xl font-bold text-blue-900">{formatCurrency(results.revenueForecasts.realistic)}</p>
                   </div>
-                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-start space-x-3">
+                    <span className="text-2xl">🍷</span>
                     <div>
-                      <p className="font-medium text-gray-900">Conservative Scenario</p>
-                      <p className="text-sm text-gray-700">Lower engagement, only high-probability customers respond</p>
+                      <p className="font-medium text-gray-900">Top Products to Promote</p>
+                      <p className="text-sm text-gray-600">
+                        Focus on {results.summary.topProducts.slice(0, 3).map(p => p.product).join(', ')}
+                      </p>
                     </div>
-                    <p className="text-2xl font-bold text-gray-900">{formatCurrency(results.revenueForecasts.conservative)}</p>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <span className="text-2xl">📅</span>
+                    <div>
+                      <p className="font-medium text-gray-900">Seasonal Timing</p>
+                      <p className="text-sm text-gray-600">
+                        {results.dormantCustomers.filter(c => c.seasonalPattern.pattern !== 'Sporadic').length} customers have seasonal buying patterns to leverage
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -540,7 +542,7 @@ export function EnhancedResultsDashboard({ results, onReset }: EnhancedResultsDa
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">6-Month Value</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Risk</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Win-Back</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Details</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -596,9 +598,9 @@ export function EnhancedResultsDashboard({ results, onReset }: EnhancedResultsDa
                           </div>
                         </td>
                         <td className="px-4 py-3 text-sm">
-                          <button className="text-blue-600 hover:text-blue-800 text-xs">
-                            View →
-                          </button>
+                          <span className="text-blue-600 text-xs">
+                            Click row for details
+                          </span>
                         </td>
                       </tr>
                     ))}
@@ -616,23 +618,43 @@ export function EnhancedResultsDashboard({ results, onReset }: EnhancedResultsDa
           {/* Products Tab */}
           {activeTab === 'products' && (
             <div className="space-y-6">
-              {/* Product Performance */}
+              {/* Product Performance Table */}
               <div className="bg-white border border-gray-200 rounded-lg p-6">
-                <h3 className="text-lg font-semibold mb-4">Top Products by Revenue (Dormant Customers)</h3>
-                <ResponsiveContainer width="100%" height={400}>
-                  <BarChart data={results.productInsights.topProducts} layout="horizontal">
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis type="number" tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`} />
-                    <YAxis 
-                      dataKey="product" 
-                      type="category" 
-                      width={200}
-                      tick={{ fontSize: 12 }}
-                    />
-                    <Tooltip formatter={(value: number) => formatCurrency(value)} />
-                    <Bar dataKey="revenue" fill="#3b82f6" />
-                  </BarChart>
-                </ResponsiveContainer>
+                <h3 className="text-lg font-semibold mb-4">Top Products Among Dormant Customers</h3>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customers</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Revenue</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Avg per Customer</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trend</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {results.productInsights.topProducts.slice(0, 15).map((product, index) => {
+                        const trendingUp = results.productInsights.trendingUp.includes(product.product)
+                        const trendingDown = results.productInsights.trendingDown.includes(product.product)
+                        return (
+                          <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                            <td className="px-4 py-3 text-sm font-medium text-gray-900">{product.product}</td>
+                            <td className="px-4 py-3 text-sm text-gray-500">{product.customers}</td>
+                            <td className="px-4 py-3 text-sm text-gray-500">{formatCurrency(product.revenue)}</td>
+                            <td className="px-4 py-3 text-sm text-gray-500">
+                              {formatCurrency(product.revenue / product.customers)}
+                            </td>
+                            <td className="px-4 py-3 text-sm">
+                              {trendingUp && <span className="text-green-600">📈 Trending Up</span>}
+                              {trendingDown && <span className="text-red-600">📉 Trending Down</span>}
+                              {!trendingUp && !trendingDown && <span className="text-gray-400">→ Stable</span>}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
 
               {/* Product Trends */}
@@ -698,64 +720,6 @@ export function EnhancedResultsDashboard({ results, onReset }: EnhancedResultsDa
             </div>
           )}
 
-          {/* Geographic Tab */}
-          {activeTab === 'geographic' && (
-            <div className="space-y-6">
-              {/* Geographic Distribution Chart */}
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
-                <h3 className="text-lg font-semibold mb-4">Value at Risk by State/Province</h3>
-                <ResponsiveContainer width="100%" height={400}>
-                  <BarChart data={geographicData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="state" angle={-45} textAnchor="end" height={100} />
-                    <YAxis yAxisId="left" tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`} />
-                    <YAxis yAxisId="right" orientation="right" />
-                    <Tooltip formatter={(value: number, name: string) => 
-                      name === 'value' ? formatCurrency(value) : value
-                    } />
-                    <Legend />
-                    <Bar yAxisId="left" dataKey="value" name="Value at Risk" fill="#3b82f6" />
-                    <Bar yAxisId="right" dataKey="customers" name="Customer Count" fill="#10b981" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-
-              {/* Geographic Table */}
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
-                <h3 className="text-lg font-semibold mb-4">Geographic Details</h3>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">State/Province</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dormant Customers</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Value at Risk</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Average per Customer</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">% of Total</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {Object.entries(results.geographicDistribution)
-                        .sort((a, b) => b[1].value - a[1].value)
-                        .map(([state, data], index) => (
-                          <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                            <td className="px-4 py-3 text-sm font-medium text-gray-900">{state}</td>
-                            <td className="px-4 py-3 text-sm text-gray-500">{data.count}</td>
-                            <td className="px-4 py-3 text-sm text-gray-500">{formatCurrency(data.value)}</td>
-                            <td className="px-4 py-3 text-sm text-gray-500">
-                              {formatCurrency(data.value / data.count)}
-                            </td>
-                            <td className="px-4 py-3 text-sm text-gray-500">
-                              {((data.value / results.summary.totalValueAtRisk) * 100).toFixed(1)}%
-                            </td>
-                          </tr>
-                        ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 

@@ -184,53 +184,58 @@ export function calculateWinBackProbability(
   }
 }
 
-// Segment customers
+// Segment customers based on value AND frequency
 export function segmentCustomer(
   customer: DormantCustomer,
   winBackScore: number,
   totalOrders: number
 ): CustomerSegment {
+  const avgOrderValue = customer.total6MonthValue / Math.max(customer.orderCount6Months, 1)
+  const orderFrequency = customer.orderCount6Months
   
-  // VIP: High value, frequent orders
-  if (customer.total6MonthValue > 5000 && customer.orderCount6Months > 6) {
+  // VIP: High value AND/OR high frequency
+  if ((customer.total6MonthValue > 5000 && orderFrequency >= 4) || 
+      (orderFrequency >= 8 && avgOrderValue > 500)) {
     return {
       segment: 'VIP',
-      criteria: 'High value ($5k+) and frequent orders (6+)',
+      criteria: 'High value ($5k+) or very frequent orders (8+/6mo)',
       actionPlan: 'Personal call from account manager within 24 hours'
     }
   }
 
-  // Regular: Consistent orders
-  if (customer.orderCount6Months >= 3 && winBackScore > 0.5) {
-    return {
-      segment: 'Regular',
-      criteria: 'Consistent ordering pattern with good win-back potential',
-      actionPlan: 'Personalized email with special offer'
-    }
-  }
-
-  // At-Risk: Previously good, now dormant
-  if (customer.total6MonthValue > 2000 && customer.churnRiskScore > 0.7) {
+  // At-Risk: Was previously good but declining
+  if ((customer.total6MonthValue > 2000 || orderFrequency >= 4) && 
+      customer.churnRiskScore > 0.7) {
     return {
       segment: 'At-Risk',
-      criteria: 'Valuable customer with high churn risk',
+      criteria: 'Previously valuable/frequent customer with high churn risk',
       actionPlan: 'Urgent outreach with incentive to return'
     }
   }
 
-  // Occasional: Sporadic orders
-  if (customer.orderCount6Months <= 2) {
+  // Regular: Consistent frequency OR decent value
+  if ((orderFrequency >= 3 && winBackScore > 0.5) ||
+      (customer.total6MonthValue > 1500 && orderFrequency >= 2)) {
     return {
-      segment: 'Occasional',
-      criteria: 'Infrequent ordering pattern',
-      actionPlan: 'Add to seasonal campaigns and newsletters'
+      segment: 'Regular',
+      criteria: 'Consistent orders (3+) or good value ($1.5k+)',
+      actionPlan: 'Personalized email with loyalty rewards'
     }
   }
 
-  // Lost: High risk, low engagement
+  // Occasional: Low frequency but still engaged
+  if (orderFrequency >= 1 && winBackScore > 0.3) {
+    return {
+      segment: 'Occasional',
+      criteria: 'Infrequent but recent orders',
+      actionPlan: 'Add to seasonal campaigns and product launches'
+    }
+  }
+
+  // Lost: Very high risk, minimal engagement
   return {
     segment: 'Lost',
-    criteria: 'Very high churn risk with low engagement',
+    criteria: 'Minimal recent activity with very high churn risk',
     actionPlan: 'Win-back campaign with significant incentive'
   }
 }
