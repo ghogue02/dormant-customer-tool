@@ -88,7 +88,8 @@ export async function processFiles(
   console.log('Six months ago:', sixMonthsAgo.toDateString())
   console.log('45 days ago:', fortyFiveDaysAgo.toDateString())
 
-  let validRecords = 0
+  let validRecords = 0  // Records with valid data format
+  let recordsInWindow = 0  // Records within 6-month analysis window
   const issues: string[] = []
 
   salesData.forEach((row: any) => {
@@ -100,16 +101,22 @@ export async function processFiles(
       }
 
       const customer = row.Customer?.trim()
-      if (!customer) return
+      if (!customer) {
+        issues.push('Missing customer name')
+        return
+      }
 
       const netPrice = parseFloat(row['Net price']) || 0
       // Handle 'Qty.' or 'Qty' column
       // const quantity = parseInt(row['Qty.'] || row.Qty) || 0
       const item = row.Item || 'Unknown'
 
-      // Only process orders from last 6 months
+      // This is a valid record (has date, customer, and can be parsed)
+      validRecords++
+
+      // Only process orders from last 6 months for dormant analysis
       if (postedDate >= sixMonthsAgo) {
-        validRecords++
+        recordsInWindow++
         
         if (!customerMap.has(customer)) {
           // Get correct salesperson from planning sheet
@@ -163,9 +170,16 @@ export async function processFiles(
     // Customer is dormant if they ordered in last 6 months but not in last 45 days
     if (customer.lastOrderDate >= sixMonthsAgo && customer.lastOrderDate < fortyFiveDaysAgo) {
       // Calculate churn risk score (0-1)
-      const daysSinceOrderScore = Math.min(customer.daysSinceOrder / 180, 1) // 180 days = high risk
-      const orderFrequencyScore = 1 - Math.min(customer.orderCount6Months / 12, 1) // 12+ orders = low risk
-      const valueScore = customer.total6MonthValue < 1000 ? 0.8 : 0.3 // Low value = higher risk
+      // Risk factors:
+      // 1. Days since last order (50% weight): More days = higher risk
+      const daysSinceOrderScore = Math.min(customer.daysSinceOrder / 180, 1) // 180 days = max risk
+      
+      // 2. Order frequency (30% weight): Fewer orders = higher risk
+      const orderFrequencyScore = 1 - Math.min(customer.orderCount6Months / 12, 1) // 12+ orders = min risk
+      
+      // 3. Customer value (20% weight): Lower value = higher risk
+      const valueScore = customer.total6MonthValue < 1000 ? 0.8 : 
+                        customer.total6MonthValue < 5000 ? 0.5 : 0.2
       
       const churnRiskScore = (daysSinceOrderScore * 0.5 + orderFrequencyScore * 0.3 + valueScore * 0.2)
 
@@ -230,6 +244,15 @@ export async function processFiles(
   const salespersonSummaries = Array.from(salespersonMap.values())
     .sort((a, b) => b.totalValueAtRisk - a.totalValueAtRisk)
 
+  // Log processing summary
+  console.log(`Data Processing Summary:
+    - Total records: ${salesData.length}
+    - Valid records: ${validRecords} (${(validRecords/salesData.length*100).toFixed(1)}%)
+    - Records in 6-month window: ${recordsInWindow}
+    - Unique customers in window: ${customerMap.size}
+    - Dormant customers found: ${dormantCustomers.length}
+  `)
+
   // Generate insights
   const totalValueAtRisk = dormantCustomers.reduce((sum, c) => sum + c.total6MonthValue, 0)
   const avgChurnRisk = dormantCustomers.length > 0 
@@ -270,6 +293,9 @@ export async function processFiles(
     dataQualityReport: {
       totalRecords: salesData.length,
       validRecords,
+      recordsInWindow: recordsInWindow,
+      dataCompleteness: `${validRecords}/${salesData.length} records have valid data`,
+      windowCoverage: `${recordsInWindow}/${validRecords} valid records are within 6-month window`,
       issues: issues.slice(0, 10) // Limit issues to first 10
     }
   }

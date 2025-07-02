@@ -230,6 +230,75 @@ export default function Home() {
             </div>
           </div>
 
+          {/* Risk Calculation Legend */}
+          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h3 className="text-lg font-semibold mb-4">📊 How Risk is Calculated</h3>
+            <div className="space-y-4">
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-medium text-gray-900 mb-2">Churn Risk Score Components:</h4>
+                <ul className="space-y-2 text-sm text-gray-700">
+                  <li className="flex items-start">
+                    <span className="font-medium mr-2">50%</span>
+                    <span><strong>Days Since Last Order:</strong> Customers who haven't ordered recently are at higher risk. Scale: 0-180 days (180+ days = maximum risk)</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="font-medium mr-2">30%</span>
+                    <span><strong>Order Frequency:</strong> Customers with fewer orders are at higher risk. Scale: 1-12 orders (12+ orders = minimum risk)</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="font-medium mr-2">20%</span>
+                    <span><strong>Customer Value:</strong> Lower-value customers are at higher risk. Thresholds: &lt;$1k = high risk, $1k-$5k = medium risk, &gt;$5k = low risk</span>
+                  </li>
+                </ul>
+              </div>
+              
+              <div className="grid grid-cols-3 gap-4">
+                <div className="text-center">
+                  <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                    Low Risk (0-40%)
+                  </div>
+                  <p className="text-xs text-gray-600 mt-1">Quick wins for re-engagement</p>
+                </div>
+                <div className="text-center">
+                  <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                    Medium Risk (40-70%)
+                  </div>
+                  <p className="text-xs text-gray-600 mt-1">Requires targeted outreach</p>
+                </div>
+                <div className="text-center">
+                  <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                    High Risk (70-100%)
+                  </div>
+                  <p className="text-xs text-gray-600 mt-1">Urgent action needed</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Data Quality Explanation */}
+          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h3 className="text-lg font-semibold mb-4">📈 Data Quality Score</h3>
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <p className="text-sm text-gray-700 mb-2">
+                The data quality score of <strong>{(results.summary.dataQualityScore * 100).toFixed(1)}%</strong> represents the percentage of records in your file that have:
+              </p>
+              <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
+                <li>Valid date format</li>
+                <li>Customer name present</li>
+                <li>Parseable price data</li>
+              </ul>
+              <p className="text-sm text-gray-600 mt-3">
+                <strong>Note:</strong> Records outside the 6-month analysis window are still considered valid for quality scoring. Only records with missing or unparseable data reduce the quality score.
+              </p>
+              {results.dataQualityReport && (
+                <div className="mt-3 text-xs text-gray-600">
+                  <p>{results.dataQualityReport.dataCompleteness}</p>
+                  <p>{results.dataQualityReport.windowCoverage}</p>
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Salesperson Summary */}
           <div className="bg-white rounded-lg shadow-md p-6 mb-6">
             <h3 className="text-lg font-semibold mb-4">By Salesperson</h3>
