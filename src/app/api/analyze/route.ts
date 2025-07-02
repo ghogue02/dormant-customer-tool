@@ -1,23 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { processFiles } from '@/lib/data-processor'
+import { processLargeFiles } from '@/lib/data-processor-chunked'
 import { kv } from '@vercel/kv'
 import { nanoid } from 'nanoid'
 
 export const maxDuration = 60 // 60 seconds timeout
 export const dynamic = 'force-dynamic'
 
-// Increase body size limit to 50MB
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '50mb',
-    },
-  },
-}
-
 export async function POST(request: NextRequest) {
   try {
     console.log('Starting file analysis...')
+    
+    // Check content length
+    const contentLength = request.headers.get('content-length')
+    if (contentLength && parseInt(contentLength) > 50 * 1024 * 1024) {
+      return NextResponse.json(
+        { error: 'Files too large. Maximum total size is 50MB.' },
+        { status: 413 }
+      )
+    }
     
     const formData = await request.formData()
     const salesFile = formData.get('salesFile') as File
@@ -37,8 +38,10 @@ export async function POST(request: NextRequest) {
     console.log(`Processing ${salesFile.name} (${(salesFile.size / 1024 / 1024).toFixed(2)}MB)`)
     console.log(`Processing ${planningFile.name} (${(planningFile.size / 1024).toFixed(2)}KB)`)
 
-    // Process the files
-    const results = await processFiles(salesContent, planningBuffer)
+    // Use chunked processing for large files
+    const results = salesFile.size > 5 * 1024 * 1024 
+      ? await processLargeFiles(salesContent, planningBuffer)
+      : await processFiles(salesContent, planningBuffer)
 
     // Generate unique ID for this analysis
     const analysisId = nanoid(10)

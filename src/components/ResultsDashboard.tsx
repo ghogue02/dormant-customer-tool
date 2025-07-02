@@ -5,11 +5,10 @@ import type { AnalysisResults } from '@/types'
 
 interface ResultsDashboardProps {
   results: AnalysisResults
-  jobId: string
   onReset: () => void
 }
 
-export function ResultsDashboard({ results, jobId, onReset }: ResultsDashboardProps) {
+export function ResultsDashboard({ results, onReset }: ResultsDashboardProps) {
   const [activeTab, setActiveTab] = useState<'insights' | 'salespeople' | 'customers'>('insights')
   const [isDownloading, setIsDownloading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')

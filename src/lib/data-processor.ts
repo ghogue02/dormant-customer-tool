@@ -85,7 +85,7 @@ export async function processFiles(
       if (!customer) return
 
       const netPrice = parseFloat(row['Net price']) || 0
-      const quantity = parseInt(row.Qty) || 0
+      // const quantity = parseInt(row.Qty) || 0
       const item = row.Item || 'Unknown'
 
       // Only process orders from last 6 months

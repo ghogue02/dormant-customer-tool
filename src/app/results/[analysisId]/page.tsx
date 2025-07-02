@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
+import Link from 'next/link'
 import { Header } from '@/components/Header'
 
 export default function ResultsPage() {
@@ -42,11 +43,11 @@ export default function ResultsPage() {
     return 'text-green-600'
   }
 
-  const getRiskLabel = (risk: number) => {
-    if (risk > 0.7) return 'High Risk'
-    if (risk > 0.4) return 'Medium Risk'
-    return 'Low Risk'
-  }
+  // const getRiskLabel = (risk: number) => {
+  //   if (risk > 0.7) return 'High Risk'
+  //   if (risk > 0.4) return 'Medium Risk'
+  //   return 'Low Risk'
+  // }
 
   if (loading) {
     return (
@@ -72,9 +73,9 @@ export default function ResultsPage() {
           <div className="bg-red-50 border border-red-200 rounded-lg p-8 text-center">
             <h2 className="text-xl font-semibold text-red-800 mb-2">Error Loading Results</h2>
             <p className="text-red-700">{error}</p>
-            <a href="/" className="mt-4 inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            <Link href="/" className="mt-4 inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
               Start New Analysis
-            </a>
+            </Link>
           </div>
         </main>
       </div>
@@ -98,12 +99,12 @@ export default function ResultsPage() {
                 Generated on {new Date(results.createdAt).toLocaleString()}
               </p>
             </div>
-            <a
+            <Link
               href="/"
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
               Run New Analysis
-            </a>
+            </Link>
           </div>
 
           {/* Summary Stats */}

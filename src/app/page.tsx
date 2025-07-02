@@ -25,6 +25,17 @@ export default function Home() {
       return
     }
 
+    // Check file sizes (Vercel has limits)
+    const maxSize = 20 * 1024 * 1024; // 20MB limit to be safe
+    if (salesFile.size > maxSize) {
+      setError(`Sales file is too large (${(salesFile.size / 1024 / 1024).toFixed(1)}MB). Maximum size is 20MB.`)
+      return
+    }
+    if (planningFile.size > maxSize) {
+      setError(`Planning file is too large (${(planningFile.size / 1024 / 1024).toFixed(1)}MB). Maximum size is 20MB.`)
+      return
+    }
+
     setIsProcessing(true)
     setError(null)
 
@@ -38,7 +49,22 @@ export default function Home() {
         body: formData,
       })
 
-      const data: AnalysisResult = await response.json()
+      // Handle non-JSON responses (like 413 errors)
+      const contentType = response.headers.get('content-type')
+      let data: AnalysisResult
+      
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json()
+      } else {
+        // Handle non-JSON error responses
+        const text = await response.text()
+        data = {
+          success: false,
+          error: response.status === 413 
+            ? 'File too large. Please ensure your files are under 20MB.'
+            : `Server error: ${text}`,
+        }
+      }
 
       if (!response.ok) {
         throw new Error(data.error || 'Analysis failed')
@@ -54,7 +80,18 @@ export default function Home() {
       }
     } catch (err) {
       console.error('Analysis error:', err)
-      setError(err instanceof Error ? err.message : 'Analysis failed')
+      if (err instanceof Error) {
+        // Handle specific error types
+        if (err.message.includes('413') || err.message.includes('Request Entity Too Large')) {
+          setError('Files are too large. Please ensure total upload size is under 20MB.')
+        } else if (err.message.includes('Failed to fetch')) {
+          setError('Network error. Please check your connection and try again.')
+        } else {
+          setError(err.message)
+        }
+      } else {
+        setError('Analysis failed. Please try again.')
+      }
     } finally {
       setIsProcessing(false)
     }
