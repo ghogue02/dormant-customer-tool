@@ -237,6 +237,23 @@ export async function processFilesEnhanced(
         sum + (parseFloat(o['Net price']) || 0), 0
       )
       
+      // Calculate true average order gap
+      let averageOrderGap = 0
+      if (orderDates.length > 1) {
+        // Sort order dates chronologically
+        const sortedDates = orderDates.sort((a, b) => a.getTime() - b.getTime())
+        const gaps: number[] = []
+        
+        // Calculate gaps between consecutive orders
+        for (let i = 1; i < sortedDates.length; i++) {
+          const gapInDays = (sortedDates[i].getTime() - sortedDates[i-1].getTime()) / (1000 * 60 * 60 * 24)
+          gaps.push(gapInDays)
+        }
+        
+        // Average of all gaps
+        averageOrderGap = gaps.length > 0 ? gaps.reduce((sum, gap) => sum + gap, 0) / gaps.length : 0
+      }
+      
       // Determine order trend
       let orderTrend: 'increasing' | 'stable' | 'declining' = 'stable'
       if (orderDates.length >= 3) {
@@ -274,9 +291,7 @@ export async function processFilesEnhanced(
           firstOrderDate,
           totalOrders: allCustomerOrders.length,
           totalLifetimeValue,
-          averageOrderGap: orderDates.length > 1 
-            ? (customer.lastOrderDate.getTime() - firstOrderDate.getTime()) / (1000 * 60 * 60 * 24) / (orderDates.length - 1)
-            : 0,
+          averageOrderGap,
           orderTrend
         }
       })
