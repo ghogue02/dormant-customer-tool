@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Header } from '@/components/Header'
+import { preprocessSalesData } from '@/lib/client-processor'
 
 interface AnalysisResult {
   success: boolean
@@ -19,20 +20,48 @@ export default function Home() {
   const [results, setResults] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
 
+  const handleResponse = async (response: Response) => {
+    // Handle non-JSON responses (like 413 errors)
+    const contentType = response.headers.get('content-type')
+    let data: AnalysisResult
+    
+    if (contentType && contentType.includes('application/json')) {
+      data = await response.json()
+    } else {
+      // Handle non-JSON error responses
+      const text = await response.text()
+      data = {
+        success: false,
+        error: response.status === 413 
+          ? 'File too large even after processing. Please contact support.'
+          : `Server error: ${text}`,
+      }
+    }
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Analysis failed')
+    }
+
+    if (data.success && data.results) {
+      setResults(data.results)
+      
+      // If we have a share URL, update the browser URL
+      if (data.shareUrl) {
+        window.history.pushState({}, '', data.shareUrl)
+      }
+    }
+  }
+
   const handleAnalyze = async () => {
     if (!salesFile || !planningFile) {
       setError('Please upload both files')
       return
     }
 
-    // Check file sizes (Vercel has limits)
-    const maxSize = 20 * 1024 * 1024; // 20MB limit to be safe
-    if (salesFile.size > maxSize) {
-      setError(`Sales file is too large (${(salesFile.size / 1024 / 1024).toFixed(1)}MB). Maximum size is 20MB.`)
-      return
-    }
-    if (planningFile.size > maxSize) {
-      setError(`Planning file is too large (${(planningFile.size / 1024 / 1024).toFixed(1)}MB). Maximum size is 20MB.`)
+    // Check planning file size
+    const maxPlanningSize = 5 * 1024 * 1024; // 5MB for planning file
+    if (planningFile.size > maxPlanningSize) {
+      setError(`Planning file is too large (${(planningFile.size / 1024 / 1024).toFixed(1)}MB). Maximum size is 5MB.`)
       return
     }
 
@@ -40,44 +69,50 @@ export default function Home() {
     setError(null)
 
     try {
-      const formData = new FormData()
-      formData.append('salesFile', salesFile)
-      formData.append('planningFile', planningFile)
-
-      const response = await fetch('/api/analyze', {
-        method: 'POST',
-        body: formData,
-      })
-
-      // Handle non-JSON responses (like 413 errors)
-      const contentType = response.headers.get('content-type')
-      let data: AnalysisResult
+      // Preprocess large sales file on client side
+      let processedSalesContent: string
       
-      if (contentType && contentType.includes('application/json')) {
-        data = await response.json()
+      if (salesFile.size > 4 * 1024 * 1024) { // If larger than 4MB
+        setError('Processing large file... This may take a moment.')
+        try {
+          processedSalesContent = await preprocessSalesData(salesFile)
+          setError(null) // Clear the processing message
+          
+          // Create a new smaller file from processed content
+          const processedBlob = new Blob([processedSalesContent], { type: 'text/csv' })
+          const processedFile = new File([processedBlob], salesFile.name, { type: 'text/csv' })
+          
+          console.log(`Reduced file size from ${(salesFile.size / 1024 / 1024).toFixed(2)}MB to ${(processedFile.size / 1024 / 1024).toFixed(2)}MB`)
+          
+          const formData = new FormData()
+          formData.append('salesFile', processedFile)
+          formData.append('planningFile', planningFile)
+          
+          const response = await fetch('/api/analyze', {
+            method: 'POST',
+            body: formData,
+          })
+          
+          await handleResponse(response)
+        } catch (preprocessError) {
+          console.error('Preprocessing error:', preprocessError)
+          setError('Failed to process large file. Please try a smaller file or contact support.')
+          return
+        }
       } else {
-        // Handle non-JSON error responses
-        const text = await response.text()
-        data = {
-          success: false,
-          error: response.status === 413 
-            ? 'File too large. Please ensure your files are under 20MB.'
-            : `Server error: ${text}`,
-        }
-      }
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Analysis failed')
-      }
-
-      if (data.success && data.results) {
-        setResults(data.results)
+        // File is small enough, send as-is
+        const formData = new FormData()
+        formData.append('salesFile', salesFile)
+        formData.append('planningFile', planningFile)
         
-        // If we have a share URL, update the browser URL
-        if (data.shareUrl) {
-          window.history.pushState({}, '', data.shareUrl)
-        }
+        const response = await fetch('/api/analyze', {
+          method: 'POST',
+          body: formData,
+        })
+        
+        await handleResponse(response)
       }
+
     } catch (err) {
       console.error('Analysis error:', err)
       if (err instanceof Error) {
@@ -94,6 +129,7 @@ export default function Home() {
       }
     } finally {
       setIsProcessing(false)
+      setProcessingMessage('')
     }
   }
 
